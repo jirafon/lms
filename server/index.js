@@ -15,16 +15,18 @@ dotenv.config({});
 connectDB();
 const app = express();
 
-const PORT = process.env.PORT || 3000;
 
 // default middleware
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+    // Si no necesitas credenciales, no incluyas "credentials: true
+  })
+);
  
 // apis
 app.use("/api/v1/media", mediaRoute);
@@ -34,8 +36,12 @@ app.use("/api/v1/purchase", purchaseRoute);
 app.use("/api/v1/progress", courseProgressRoute);
  
  
+// Instead of hard‐coding a port, read from process.env.PORT:
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// When you call listen, you don’t need to explicitly pass "0.0.0.0"—
+// Node defaults to 0.0.0.0 if you only pass a port. The important thing is
+// that you do not bind to 'localhost' or '127.0.0.1' explicitly.
 app.listen(PORT, () => {
-    console.log(`Server listen at port ${PORT}`);
-})
-
-
+  console.log(`🚀 Server is running on port ${PORT}`);
+});
