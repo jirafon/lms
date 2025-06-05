@@ -20,13 +20,10 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    // Si no necesitas credenciales, no incluyas "credentials: true
-  })
-);
+app.use(cors({
+    origin: true,
+    credentials:true
+}));
  
 // apis
 app.use("/api/v1/media", mediaRoute);
