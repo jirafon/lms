@@ -19,8 +19,8 @@ import { toast } from "sonner";
 
 //const MEDIA_API = "http://localhost:3010/api/v1/media";
 
+const MEDIA_API = import.meta.env.VITE_API_BASE_URL + "/media/";
 
-const MEDIA_API = import.meta.env.VITE_MEDIA_API;
 
 const LectureTab = () => {
   const [lectureTitle, setLectureTitle] = useState("");
