@@ -20,10 +20,15 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(cors({
-    origin: true,
-    credentials:true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // Postman, curl, etc.
+      callback(null, origin);                  // acepta siempre el Origin que venga
+    },
+    credentials: true,
+  })
+);
  
 // apis
 app.use("/api/v1/media", mediaRoute);
