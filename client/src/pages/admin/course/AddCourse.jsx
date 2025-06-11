@@ -59,7 +59,7 @@ const AddCourse = () => {
             type="text"
             value={courseTitle}
             onChange={(e) => setCourseTitle(e.target.value)}
-            placeholder="Your Course Name"
+            placeholder="El nombre de tu curso"
           />
         </div>
         <div>
