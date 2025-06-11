@@ -1,8 +1,7 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-import dotenv from "dotenv"
-
+ import dotenv from 'dotenv'
 dotenv.config()
 
 export default defineConfig({
@@ -13,15 +12,15 @@ export default defineConfig({
     },
   },
   server: {
-    host: "0.0.0.0",                           // listen on all interfaces
-    port: Number(process.env.PORT) || 5173,    // use Render’s PORT or fall back
-    strictPort: true,                          // fail if that port is unavailable
-    allowedHosts: ["lms-client-ct7h.onrender.com"],  // allow your Render host
+    host: '0.0.0.0',                        // listen on all interfaces
+    port: Number(process.env.PORT) || 5173, // use Render’s PORT or fall back
+    strictPort: true    
+                        // fail if that port is unavailable
   },
   preview: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     port: Number(process.env.PORT) || 4173,
-    strictPort: true,
-    allowedHosts: ["lms-client-ct7h.onrender.com"],
-  },
+    strictPort: true
+  }
 })
+ 
