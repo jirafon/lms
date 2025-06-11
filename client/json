@@ -1,0 +1,207 @@
+const RiskSchema = new Schema(
+  {
+    /* ----------------------------------------------------------------- */
+    /*  1. Identificación y metadatos básicos                            */
+    /* ----------------------------------------------------------------- */
+    idcontrato: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    description: {
+      type: String,
+      default: ''
+    },
+        contextType: {
+      type: String,
+      enum: ['Project','Operation','Regulation', 'Assignment'],
+    },
+   contextId:          { type: Schema.Types.ObjectId, ref: 'Assignment' },
+   process: {
+      type: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: 'Process'
+        }
+      ],
+      default: []
+    },
+    area: {
+      type: Schema.Types.ObjectId,
+      ref: 'Area',
+      default: null
+    },
+    group: {
+      type: Schema.Types.ObjectId,
+      ref: 'RiskGroup',
+      default: null
+    },
+    identifiedAt: {
+      type: Date,
+      default: Date.now
+    },
+    category: {
+      type: String,
+      default: ''
+    },
+    cargoRiesgo: {
+      type: String,
+      default: ''
+    },
+    riskMatrix: {
+      type: Schema.Types.ObjectId,
+      ref: 'RiskMatrix',
+      default: null
+    },
+
+    /* ----------------------------------------------------------------- */
+    /*  2. Campos “Inherentes”                                            */
+    /* ----------------------------------------------------------------- */
+ inherentLikelihood: { type: Number, required: true, default: 0 },
+  inherentImpact:     { type: Number, required: true, default: 0 },
+  inherentSeverity:   { type: Number, required: true, default: 0 },
+ 
+  
+    inherentControls: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Task'
+      }
+    ],
+
+    /* ----------------------------------------------------------------- */
+    /*  3. Campos “Residuales”                                            */
+    /* ----------------------------------------------------------------- */
+    residualSeverity: {
+      type: Number,
+      default: 0
+    },
+    residualImpact: {
+      type: Number,
+      default: 0
+    },
+    residualLikelihood: {
+      type: Number,
+      min: 0,
+      max: 5,
+      default: 0
+    },
+    residualCalculatedAt: {
+      type: Date,
+      default: Date.now
+    },
+    residualNotes: {
+      type: String,
+      default: ''
+    },
+    residualTasks: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Task'
+      }
+    ],
+
+    /* ----------------------------------------------------------------- */
+    /*  4. Flujo de validación y estado                                   */
+    /* ----------------------------------------------------------------- */
+    status: {
+      type: String,
+      enum: ['Propuesto', 'Validado', 'En Implementación', 'Mitigado', 'Rechazado'],
+      default: 'Propuesto'
+    },
+    validatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    validatedAt: {
+      type: Date
+    },
+    planHistory: [
+      {
+        date: {
+          type: Date
+        },
+        updatedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        changeDescription: {
+          type: String
+        },
+        status: {
+          type: String
+        }
+      }
+    ],
+    remediation: {
+      type: Schema.Types.ObjectId,
+      ref: 'RemediationPlan',
+      default: null
+    },
+
+    /* ----------------------------------------------------------------- */
+    /*  5. Relaciones con otros objetos                                   */
+    /* ----------------------------------------------------------------- */
+    meetCommittee: {
+      type: Schema.Types.ObjectId,
+      ref: 'MeetCommittee',
+      default: null
+    },
+    policies: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Policy'
+      }
+    ],
+    bimElementIds: [
+      {
+        type: String
+      }
+    ],
+      kind: {
+      type: String,
+      default: ''
+    },
+  },
+ {
+    timestamps: true,  
+     toObject: { virtuals: true },
+    toJSON:   { virtuals: true }
+  }
+);
+// Virtuals to pull in all controls & tasks
+RiskSchema.virtual('controls', {
+  ref:         'Task',
+  localField:  '_id',
+  foreignField:'riskId'
+});
+RiskSchema.virtual('tasks', {
+  ref:         'Task',
+  localField:  '_id',
+  foreignField:'riskId'
+});
+/* --------------------------------------------------------------------- */
+/*  Índices útiles (ejemplos)                                             */
+/* --------------------------------------------------------------------- */
+// Index para consultas frecuentes por idcontrato y userId
+RiskSchema.index({ idcontrato: 1 });
+RiskSchema.index({ userId: 1 });
+// Si consultas por control inherente, podrías indexar inherentControls
+RiskSchema.index({ inherentControls: 1 });
+// Si filtras por estado residual, por ejemplo:
+RiskSchema.index({ status: 1 });
+
+const Risk = mongoose.models.Risk || model('Risk', RiskSchema);
+export default Risk;
+
