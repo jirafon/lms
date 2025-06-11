@@ -63,28 +63,39 @@ const Login = () => {
     await action(inputData);
   };
 
-  useEffect(() => {
-    if(registerIsSuccess && registerData){
-      toast.success(registerData.message || "Signup successful.")
-    }
-    if(registerError){
-      toast.error(registerError.data.message || "Signup Failed");
-    }
-    if(loginIsSuccess && loginData){
-      toast.success(loginData.message || "Login successful.");
-      navigate("/");
-    }
-    if(loginError){ 
-      toast.error(loginError.data.message || "login Failed");
-    }
-  }, [
-    loginIsLoading,
-    registerIsLoading,
-    loginData,
-    registerData,
-    loginError,
-    registerError,
-  ]);
+useEffect(() => {
+  if (registerIsSuccess && registerData) {
+    toast.success(registerData.message ?? "Signup successful.");
+  }
+  if (registerError) {
+    const signupMsg =
+      registerError?.data?.message ??    // RTK Query “data” payload
+      registerError?.error?.message ??   // fallback shape
+      "Signup failed.";
+    toast.error(signupMsg);
+  }
+
+  if (loginIsSuccess && loginData) {
+    toast.success(loginData.message ?? "Login successful.");
+    navigate("/");
+  }
+  if (loginError) {
+    const loginMsg =
+      loginError?.data?.message ??
+      loginError?.error?.message ??
+      "Login failed.";
+    toast.error(loginMsg);
+  }
+}, [
+  registerIsSuccess,
+  registerData,
+  registerError,
+  loginIsSuccess,
+  loginData,
+  loginError,
+  navigate
+]);
+
 
   return (
     <div className="flex items-center w-full justify-center mt-20">
