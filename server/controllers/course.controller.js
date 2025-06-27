@@ -1,7 +1,7 @@
- 
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import {deleteMediaFromCloudinary, deleteVideoFromCloudinary, uploadMedia} from "../utils/cloudinary.js";
+import { deleteVideoFromS3, extractS3KeyFromUrl } from "../utils/s3.js";
 
 export const createCourse = async (req,res) => {
     try {
@@ -268,8 +268,14 @@ export const removeLecture = async (req,res) => {
                 message:"Lecture not found!"
             });
         }
-        // delete the lecture from couldinary as well
-        if(lecture.publicId){
+        // delete the video from S3 as well
+        if(lecture.videoUrl && (lecture.videoUrl.includes('s3') || lecture.videoUrl.includes('cloudfront'))){
+            const key = extractS3KeyFromUrl(lecture.videoUrl);
+            if (key) {
+                await deleteVideoFromS3(key);
+            }
+        } else if(lecture.publicId){
+            // Fallback to Cloudinary if it's an old video
             await deleteVideoFromCloudinary(lecture.publicId);
         }
 

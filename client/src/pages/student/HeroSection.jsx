@@ -18,10 +18,10 @@ const navigate = useNavigate();
     <div className="relative bg-gradient-to-r from-blue-500 to bg-indigo-600 dark:from-gray-800 dark:to-gray-900 py-24 px-4 text-center">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-white text-4xl font-bold mb-4">
-          Encuentra los mejores cursos de GRC para ti
+          Encuentra los mejores cursos de Riesgo, Cumplimiento y Gobernanza para ti
         </h1>
         <p className="text-gray-200 dark:text-gray-400 mb-8">
-          Discubre, mejore u aprende nuevas habilidades con nuestra amplia selección de cursos para el GRC en línea.
+          Descubre, mejore y aprende nuevas habilidades con nuestra amplia selección de cursos para el GRC en línea.
         </p>
 
         <form onSubmit={searchHandler} className="flex items-center bg-white dark:bg-gray-800 rounded-full shadow-lg overflow-hidden max-w-xl mx-auto mb-6">

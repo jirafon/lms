@@ -3,10 +3,11 @@ import { ArrowLeft } from "lucide-react";
 import React from "react";
 import { Link, useParams } from "react-router-dom";
 import LectureTab from "./LectureTab";
+import CreateQuiz from "@/components/CreateQuiz";
 
 const EditLecture = () => {
   const params = useParams();
-  const courseId = params.courseId;
+  const { courseId, lectureId } = params;
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
@@ -20,6 +21,7 @@ const EditLecture = () => {
         </div>
       </div>
       <LectureTab />
+      <CreateQuiz courseId={courseId} lectureId={lectureId} />
     </div>
   );
 };
