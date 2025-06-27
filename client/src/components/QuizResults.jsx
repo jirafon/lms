@@ -2,13 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Trophy, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Trophy, RefreshCw, Target } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useGetQuizResultsQuery } from '@/features/api/quizApi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { Progress } from './ui/progress';
+import { Alert, AlertDescription } from './ui/alert';
 
 const QuizResults = ({ attemptId, onRetry, onContinue }) => {
   const { data: result, isLoading, error } = useGetQuizResultsQuery(attemptId);
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
@@ -47,6 +51,12 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
 
   const { quiz, score, totalQuestions, correctAnswers, timeTaken, passed } = result;
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <Card className="max-w-2xl mx-auto mt-8">
       <CardHeader className="text-center">
@@ -69,13 +79,13 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
         <div className="grid grid-cols-2 gap-4 text-center">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-2xl font-bold text-blue-600">{score}%</div>
-            <div className="text-sm text-gray-600">Puntaje Final</div>
+            <div className="text-sm text-gray-600">{t('quiz.final_score')}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-2xl font-bold text-green-600">
               {correctAnswers}/{totalQuestions}
             </div>
-            <div className="text-sm text-gray-600">Respuestas Correctas</div>
+            <div className="text-sm text-gray-600">{t('quiz.correct_answers')}</div>
           </div>
         </div>
 
@@ -83,7 +93,7 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
         {timeTaken && (
           <div className="flex items-center justify-center gap-2 text-gray-600">
             <Clock className="h-4 w-4" />
-            <span>Tiempo: {Math.floor(timeTaken / 60)}:{(timeTaken % 60).toString().padStart(2, '0')}</span>
+            <span>{t('quiz.time_taken')}: {formatTime(timeTaken)}</span>
           </div>
         )}
 
@@ -94,46 +104,90 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
           </Badge>
         </div>
 
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>{t('quiz.your_score')}: {score}%</span>
+            <span>{t('quiz.passing_score')}: {quiz.passingScore}%</span>
+          </div>
+          <Progress 
+            value={score} 
+            className="h-3"
+            style={{
+              '--progress-background': passed ? '#10b981' : '#ef4444'
+            }}
+          />
+        </div>
+
+        {/* Status Alert */}
+        <Alert className={passed ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+          {passed ? (
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          ) : (
+            <XCircle className="h-4 w-4 text-red-600" />
+          )}
+          <AlertDescription className={passed ? "text-green-800" : "text-red-800"}>
+            {passed 
+              ? t('quiz.congratulations_passed', { score, passingScore: quiz.passingScore })
+              : t('quiz.better_luck_next_time', { score, passingScore: quiz.passingScore })
+            }
+          </AlertDescription>
+        </Alert>
+
         {/* Question Review */}
         {quiz && quiz.questions && (
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Revisión de Preguntas</h3>
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              {t('quiz.question_review')}
+            </h3>
             {quiz.questions.map((question, index) => {
               const userAnswer = result.userAnswers?.[index];
               const isCorrect = result.correctAnswers?.[index];
               
               return (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    {isCorrect ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">Pregunta {index + 1}</p>
-                      <p className="text-sm text-gray-600">{question.question}</p>
-                    </div>
-                  </div>
-                  
-                  {userAnswer && (
-                    <div className="ml-7 space-y-1">
-                      <p className="text-sm">
-                        <span className="font-medium">Tu respuesta:</span> {userAnswer}
-                      </p>
-                      {!isCorrect && question.correctAnswer && (
-                        <p className="text-sm text-green-600">
-                          <span className="font-medium">Respuesta correcta:</span> {question.correctAnswer}
-                        </p>
+                <Card key={index} className={isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {isCorrect ? (
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-1 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600 mt-1 flex-shrink-0" />
                       )}
-                      {question.explanation && (
-                        <p className="text-sm text-gray-500 italic">
-                          {question.explanation}
-                        </p>
-                      )}
+                      
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{t('quiz.quiz_question')} {index + 1}</span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                          }`}>
+                            {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
+                          </span>
+                        </div>
+                        
+                        <p className="text-gray-700">{question.question}</p>
+                        
+                        <div className="text-sm space-y-1">
+                          <p className="text-gray-600">
+                            <span className="font-medium">{t('quiz.your_answer')}:</span> {userAnswer}
+                          </p>
+                          {!isCorrect && question.correctAnswer && (
+                            <p className="text-gray-600">
+                              <span className="font-medium">{t('quiz.correct_answer')}:</span> {question.correctAnswer}
+                            </p>
+                          )}
+                          {question.explanation && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                              <p className="text-sm text-blue-800">
+                                <span className="font-medium">{t('quiz.explanation')}:</span> {question.explanation}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
@@ -144,12 +198,12 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
           {onRetry && (
             <Button variant="outline" onClick={onRetry} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />
-              Intentar de Nuevo
+              {t('quiz.retake_quiz')}
             </Button>
           )}
           {onContinue && (
             <Button onClick={onContinue}>
-              Continuar
+              {passed ? t('quiz.continue_learning') : t('quiz.back_to_course')}
             </Button>
           )}
         </div>

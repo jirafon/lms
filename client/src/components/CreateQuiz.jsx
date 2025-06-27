@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Trash2, Plus, Save } from 'lucide-react';
 import { useCreateQuizMutation } from '@/features/api/quizApi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
+  const { t } = useTranslation();
   const [createQuiz, { isLoading }] = useCreateQuizMutation();
   
   const [quizData, setQuizData] = useState({
@@ -32,17 +34,17 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
 
   const addQuestion = () => {
     if (currentQuestion.question.trim() === '') {
-      toast.error('Por favor ingresa una pregunta');
+      toast.error(t('quiz.please_enter_question'));
       return;
     }
 
     if (currentQuestion.type === 'multiple_choice' && currentQuestion.options.length < 2) {
-      toast.error('Debes agregar al menos 2 opciones');
+      toast.error(t('quiz.add_at_least_2_options'));
       return;
     }
 
     if (currentQuestion.type === 'short_answer' && !currentQuestion.correctAnswer.trim()) {
-      toast.error('Debes ingresar la respuesta correcta');
+      toast.error(t('quiz.enter_correct_answer'));
       return;
     }
 
@@ -93,7 +95,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
 
   const handleSubmit = async () => {
     if (quizData.questions.length === 0) {
-      toast.error('Debes agregar al menos una pregunta');
+      toast.error(t('quiz.add_at_least_one_question'));
       return;
     }
 
@@ -106,7 +108,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
         }
       }).unwrap();
 
-      toast.success('Quiz creado exitosamente');
+      toast.success(t('quiz.quiz_created_successfully'));
       onQuizCreated && onQuizCreated(result.quiz);
       
       // Reset form
@@ -120,7 +122,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
       });
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Error al crear el quiz: ' + (error.data?.message || 'Error desconocido'));
+      toast.error(t('quiz.error_creating_quiz') + ': ' + (error.data?.message || t('messages.unknown_error')));
     }
   };
 
@@ -128,34 +130,34 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Crear Quiz</CardTitle>
+          <CardTitle>{t('quiz.create_quiz')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Quiz Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="title">Título del Quiz</Label>
+              <Label htmlFor="title">{t('quiz.quiz_title')}</Label>
               <Input
                 id="title"
                 value={quizData.title}
                 onChange={(e) => setQuizData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ej: Fundamentos de JavaScript"
+                placeholder={t('form.placeholder.title')}
               />
             </div>
             <div>
-              <Label htmlFor="description">Descripción</Label>
+              <Label htmlFor="description">{t('quiz.quiz_description')}</Label>
               <Input
                 id="description"
                 value={quizData.description}
                 onChange={(e) => setQuizData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Breve descripción del quiz"
+                placeholder={t('form.placeholder.description')}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="timeLimit">Tiempo Límite (minutos)</Label>
+              <Label htmlFor="timeLimit">{t('quiz.time_limit')}</Label>
               <Input
                 id="timeLimit"
                 type="number"
@@ -165,7 +167,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
               />
             </div>
             <div>
-              <Label htmlFor="passingScore">Puntaje Mínimo (%)</Label>
+              <Label htmlFor="passingScore">{t('quiz.passing_score')}</Label>
               <Input
                 id="passingScore"
                 type="number"
@@ -176,7 +178,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
               />
             </div>
             <div>
-              <Label htmlFor="maxAttempts">Máximo de Intentos</Label>
+              <Label htmlFor="maxAttempts">{t('quiz.max_attempts')}</Label>
               <Input
                 id="maxAttempts"
                 type="number"
@@ -192,23 +194,23 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
       {/* Add Question Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Agregar Pregunta</CardTitle>
+          <CardTitle>{t('quiz.add_question')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="question">Pregunta</Label>
+            <Label htmlFor="question">{t('quiz.quiz_question')}</Label>
             <Textarea
               id="question"
               value={currentQuestion.question}
               onChange={(e) => setCurrentQuestion(prev => ({ ...prev, question: e.target.value }))}
-              placeholder="Escribe tu pregunta aquí..."
+              placeholder={t('form.placeholder.title')}
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="questionType">Tipo de Pregunta</Label>
+              <Label htmlFor="questionType">{t('quiz.question_type')}</Label>
               <Select
                 value={currentQuestion.type}
                 onValueChange={(value) => setCurrentQuestion(prev => ({ ...prev, type: value }))}
@@ -217,14 +219,14 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="multiple_choice">Opción Múltiple</SelectItem>
-                  <SelectItem value="true_false">Verdadero/Falso</SelectItem>
-                  <SelectItem value="short_answer">Respuesta Corta</SelectItem>
+                  <SelectItem value="multiple_choice">{t('quiz.multiple_choice')}</SelectItem>
+                  <SelectItem value="true_false">{t('quiz.true_false')}</SelectItem>
+                  <SelectItem value="short_answer">{t('quiz.short_answer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="points">Puntos</Label>
+              <Label htmlFor="points">{t('quiz.points')}</Label>
               <Input
                 id="points"
                 type="number"
@@ -238,13 +240,13 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
           {/* Options for Multiple Choice */}
           {currentQuestion.type === 'multiple_choice' && (
             <div className="space-y-2">
-              <Label>Opciones</Label>
+              <Label>{t('quiz.options')}</Label>
               {currentQuestion.options.map((option, index) => (
                 <div key={index} className="flex gap-2">
                   <Input
                     value={option.text}
                     onChange={(e) => updateOption(index, 'text', e.target.value)}
-                    placeholder={`Opción ${index + 1}`}
+                    placeholder={`${t('quiz.options')} ${index + 1}`}
                   />
                   <input
                     type="checkbox"
@@ -264,7 +266,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
               ))}
               <Button variant="outline" size="sm" onClick={addOption}>
                 <Plus className="h-4 w-4 mr-2" />
-                Agregar Opción
+                {t('quiz.add_option')}
               </Button>
             </div>
           )}
@@ -272,7 +274,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
           {/* True/False Options */}
           {currentQuestion.type === 'true_false' && (
             <div className="space-y-2">
-              <Label>Opciones</Label>
+              <Label>{t('quiz.options')}</Label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
                   <input
@@ -311,30 +313,30 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
           {/* Correct Answer for Short Answer */}
           {currentQuestion.type === 'short_answer' && (
             <div>
-              <Label htmlFor="correctAnswer">Respuesta Correcta</Label>
+              <Label htmlFor="correctAnswer">{t('quiz.correct_answer')}</Label>
               <Input
                 id="correctAnswer"
                 value={currentQuestion.correctAnswer}
                 onChange={(e) => setCurrentQuestion(prev => ({ ...prev, correctAnswer: e.target.value }))}
-                placeholder="Respuesta correcta"
+                placeholder={t('quiz.correct_answer')}
               />
             </div>
           )}
 
           <div>
-            <Label htmlFor="explanation">Explicación (Opcional)</Label>
+            <Label htmlFor="explanation">{t('quiz.explanation')}</Label>
             <Textarea
               id="explanation"
               value={currentQuestion.explanation}
               onChange={(e) => setCurrentQuestion(prev => ({ ...prev, explanation: e.target.value }))}
-              placeholder="Explicación que verá el estudiante después de responder"
+              placeholder={t('quiz.explanation')}
               rows={2}
             />
           </div>
 
           <Button onClick={addQuestion} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
-            Agregar Pregunta
+            {t('quiz.add_question')}
           </Button>
         </CardContent>
       </Card>
@@ -343,7 +345,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
       {quizData.questions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Preguntas ({quizData.questions.length})</CardTitle>
+            <CardTitle>{t('quiz.quiz_questions')} ({quizData.questions.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -351,12 +353,12 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-medium">Pregunta {index + 1}</h4>
+                      <h4 className="font-medium">{t('quiz.quiz_question')} {index + 1}</h4>
                       <p className="text-sm text-gray-600 mt-1">{question.question}</p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Tipo: {question.type === 'multiple_choice' ? 'Opción Múltiple' : 
-                               question.type === 'true_false' ? 'Verdadero/Falso' : 'Respuesta Corta'} | 
-                        Puntos: {question.points}
+                        {t('quiz.question_type')}: {question.type === 'multiple_choice' ? t('quiz.multiple_choice') : 
+                               question.type === 'true_false' ? t('quiz.true_false') : t('quiz.short_answer')} | 
+                        {t('quiz.points')}: {question.points}
                       </p>
                     </div>
                     <Button
@@ -378,7 +380,7 @@ const CreateQuiz = ({ courseId, lectureId, onQuizCreated }) => {
       <div className="flex justify-end">
         <Button onClick={handleSubmit} disabled={isLoading || quizData.questions.length === 0}>
           <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Creando...' : 'Crear Quiz'}
+          {isLoading ? t('quiz.creating') : t('quiz.create_quiz')}
         </Button>
       </div>
     </div>

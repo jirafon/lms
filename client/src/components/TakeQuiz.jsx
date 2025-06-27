@@ -7,8 +7,10 @@ import { Skeleton } from './ui/skeleton';
 import QuizResults from './QuizResults';
 import { useStartQuizMutation, useSubmitQuizMutation } from '@/features/api/quizApi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
+  const { t } = useTranslation();
   const [startQuiz, { isLoading: startingQuiz }] = useStartQuizMutation();
   const [submitQuiz, { isLoading: submitting }] = useSubmitQuizMutation();
   
@@ -67,10 +69,10 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
       const result = await submitQuiz({ attemptId, answers }).unwrap();
       setShowResults(true);
       onQuizCompleted && onQuizCompleted(result.result);
-      toast.success('Quiz enviado exitosamente');
+      toast.success(t('quiz.quiz_submitted_successfully'));
     } catch (err) {
       setError(err.data?.message || 'No se pudo enviar el quiz');
-      toast.error('Error al enviar el quiz');
+      toast.error(t('quiz.error_submitting_quiz') + ': ' + (err.data?.message || t('messages.unknown_error')));
     }
   };
 
@@ -147,7 +149,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
             </div>
           ))}
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Enviando...' : 'Enviar Quiz'}
+            {submitting ? t('quiz.submitting') : t('quiz.submit_quiz')}
           </Button>
         </form>
       </CardContent>

@@ -1,10 +1,12 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.jsx";
-import { Provider } from "react-redux";
-import { appStore } from "./app/store";
-import { Toaster } from "./components/ui/sonner";
+import './i18n';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+import { Provider } from 'react-redux';
+import { appStore } from './app/store.js';
+import { ThemeProvider } from './components/ThemeProvider.jsx';
+import { Toaster } from './components/ui/sonner.jsx';
 import { useLoadUserQuery } from "./features/api/authApi";
 import LoadingSpinner from "./components/LoadingSpinner";
 
@@ -13,13 +15,15 @@ const Custom = ({ children }) => {
   return <>{isLoading ? <LoadingSpinner/> : <>{children}</>}</>;
 };
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
     <Provider store={appStore}>
-      <Custom>
-        <App />
-        <Toaster />
-      </Custom>
+      <ThemeProvider>
+        <Custom>
+          <App />
+          <Toaster />
+        </Custom>
+      </ThemeProvider>
     </Provider>
-  </StrictMode>
+  </React.StrictMode>,
 );
