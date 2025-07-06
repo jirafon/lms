@@ -27,15 +27,23 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: CLIENT_URL
+        value: https://lms-client.onrender.com
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
       - key: AWS_REGION
         sync: false
-      - key: AWS_S3_BUCKET
+      - key: S3_BUCKET_NAME
         sync: false
       - key: CLOUDFRONT_DOMAIN
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: API_SECRET
+        sync: false
+      - key: CLOUD_NAME
         sync: false
       - key: PAYPAL_CLIENT_ID
         sync: false
@@ -44,4 +52,6 @@ services:
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
         sync: false 
