@@ -53,6 +53,15 @@ const CourseProgress = () => {
   const { courseDetails, progress, completed } = data.data;
   const { courseTitle } = courseDetails;
 
+  // Debug logging for video URLs
+  console.log("🎥 CourseProgress video data:", {
+    courseTitle,
+    totalLectures: courseDetails.lectures?.length,
+    firstLectureVideoUrl: courseDetails.lectures?.[0]?.videoUrl,
+    currentLectureVideoUrl: currentLecture?.videoUrl,
+    initialLectureVideoUrl: initialLecture?.videoUrl
+  });
+
   // initialze the first lecture is not exist
   const initialLecture =
     currentLecture || (courseDetails.lectures && courseDetails.lectures[0]);

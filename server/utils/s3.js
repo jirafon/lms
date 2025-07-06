@@ -15,6 +15,14 @@ const s3 = new S3Client({
 
 export const uploadMedia = async (filePathOrBuffer, originalName) => {
   const bucketName = process.env.S3_BUCKET_NAME;
+  const region = process.env.AWS_REGION;
+  
+  console.log("🔧 S3 Configuration Check:");
+  console.log(`   Bucket: ${bucketName}`);
+  console.log(`   Region: ${region}`);
+  console.log(`   Access Key: ${process.env.AWS_ACCESS_KEY_ID ? '✅ Set' : '❌ Missing'}`);
+  console.log(`   Secret Key: ${process.env.AWS_SECRET_ACCESS_KEY ? '✅ Set' : '❌ Missing'}`);
+  
   if (!bucketName) {
     console.error("❌ S3_BUCKET_NAME env var is not defined");
     throw new Error("S3_BUCKET_NAME env var is not defined");
@@ -31,6 +39,7 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     Bucket: bucketName,
     Key: fileKey,
     Body: filePathOrBuffer,
+    ContentType: 'image/jpeg', // Set proper content type
     // Remove the ACL line—S3 will use the bucket's policy instead:
     // ACL: "public-read",
   };
@@ -40,11 +49,15 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     await s3.send(command);
     
     // Build a URL based on bucket/region. Adjust if your bucket uses a different endpoint.
-    const region = process.env.AWS_REGION;
     const url = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
     
     console.log(`✅ S3 upload successful: ${fileKey}`);
-    console.log(`🔗 URL: ${url}`);
+    console.log(`🔗 Generated URL: ${url}`);
+    console.log(`🔍 URL components:`);
+    console.log(`   Protocol: https`);
+    console.log(`   Bucket: ${bucketName}`);
+    console.log(`   Region: ${region}`);
+    console.log(`   Key: ${fileKey}`);
     
     return { key: fileKey, url };
   } catch (error) {

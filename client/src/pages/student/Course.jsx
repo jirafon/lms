@@ -8,11 +8,21 @@ const Course = ({course}) => {
   const [imageError, setImageError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
+  // Debug logging
+  console.log("🖼️ Course component data:", {
+    courseTitle: course.courseTitle,
+    courseThumbnail: course.courseThumbnail,
+    creatorPhotoUrl: course.creator?.photoUrl,
+    creatorName: course.creator?.name
+  });
+
   const handleImageError = () => {
+    console.log("❌ Course thumbnail failed to load:", course.courseThumbnail);
     setImageError(true);
   };
 
   const handleAvatarError = () => {
+    console.log("❌ Creator avatar failed to load:", course.creator?.photoUrl);
     setAvatarError(true);
   };
 
