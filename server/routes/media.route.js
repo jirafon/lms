@@ -1,14 +1,25 @@
 import express from "express";
-import upload from "../utils/multer.js";
+import { upload, handleMulterError } from "../utils/multer.js";
 import { uploadVideo } from "../utils/s3.js";
 
 const router = express.Router();
 
-router.route("/upload-video").post(upload.single("file"), async(req,res) => {
+router.route("/upload-video").post(
+  upload.single("file"), 
+  handleMulterError,
+  async(req,res) => {
     console.log("🎥 Video upload request received");
     console.log("📁 File:", req.file?.originalname);
     console.log("📏 Size:", req.file?.size, "bytes");
     console.log("🔧 MIME type:", req.file?.mimetype);
+    console.log("📂 Temp path:", req.file?.path);
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded"
+      });
+    }
     
     try {
         console.log("🚀 Starting S3 upload process...");

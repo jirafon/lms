@@ -19,6 +19,26 @@ const encodeS3Url = (key) => {
   return key.replace(/\s/g, '+');
 };
 
+// Function to get content type based on file extension
+const getContentType = (filename) => {
+  const ext = filename.toLowerCase().split('.').pop();
+  const contentTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'mp4': 'video/mp4',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'wmv': 'video/x-ms-wmv',
+    'flv': 'video/x-flv',
+    'webm': 'video/webm'
+  };
+  return contentTypes[ext] || 'application/octet-stream';
+};
+
 export const uploadMedia = async (filePathOrBuffer, originalName) => {
   const bucketName = process.env.S3_BUCKET_NAME;
   const region = process.env.AWS_REGION;
@@ -60,11 +80,15 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     throw error;
   }
 
+  // Get the correct content type
+  const contentType = getContentType(originalName);
+  console.log(`🔧 Content type: ${contentType}`);
+
   const uploadParams = {
     Bucket: bucketName,
     Key: fileKey,
     Body: fileBuffer,
-    ContentType: 'image/jpeg', // Set proper content type
+    ContentType: contentType,
     // Remove the ACL line—S3 will use the bucket's policy instead:
     // ACL: "public-read",
   };
