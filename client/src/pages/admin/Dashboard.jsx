@@ -10,17 +10,18 @@ const Dashboard = () => {
   if(isLoading) return <h1>Loading...</h1>
   if(isError) return <h1 className="text-red-500">Failed to get purchased course</h1>
 
-  //
-  const {purchasedCourse} = data || [];
+  // Safely extract purchasedCourse with fallback to empty array
+  const purchasedCourse = data?.purchasedCourse || [];
 
   const courseData = purchasedCourse.map((course)=> ({
-    name:course.courseId.courseTitle,
-    price:course.courseId.coursePrice
+    name: course.courseId?.courseTitle || 'Unknown Course',
+    price: course.courseId?.coursePrice || 0
   }))
 
-  const totalRevenue = purchasedCourse.reduce((acc,element) => acc+(element.amount || 0), 0);
+  const totalRevenue = purchasedCourse.reduce((acc, element) => acc + (element.amount || 0), 0);
 
   const totalSales = purchasedCourse.length;
+  
   return (
     <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">

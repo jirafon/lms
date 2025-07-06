@@ -61,10 +61,12 @@ const invoices = [
 ];
 
 const CourseTable = () => {
-    const {data, isLoading} = useGetCreatorCourseQuery();
+    const {data, isLoading, error} = useGetCreatorCourseQuery();
   const navigate = useNavigate();
 
-  if(isLoading) return <h1>Loading...</h1>
+  if(isLoading) return <h1>Loading...</h1>;
+  if(error) return <h1>Error loading courses.</h1>;
+  if(!data || !Array.isArray(data.courses)) return <h1>No courses found.</h1>;
  
   return (
     <div>
@@ -80,7 +82,7 @@ const CourseTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.courses.map((course) => (
+          {data?.courses?.map((course) => (
             <TableRow key={course._id}>
               <TableCell className="font-medium">{course?.coursePrice || "NA"}</TableCell>
               <TableCell> <Badge>{course.isPublished ? "Published" : "Draft"}</Badge> </TableCell>
@@ -89,7 +91,7 @@ const CourseTable = () => {
                  <Button size='sm' variant='ghost' onClick={() => navigate(`${course._id}`)}><Edit/></Button>
               </TableCell>
             </TableRow>
-          ))}
+          )) || []}
         </TableBody>
       </Table>
     </div>

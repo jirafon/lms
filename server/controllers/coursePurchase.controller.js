@@ -27,37 +27,37 @@ export const createCheckoutSession = async (req, res) => {
     let paymentData;
 
     if (paymentMethod === 'stripe') {
-      // Create a Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
+    // Create a Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
               currency: "usd",
-              product_data: {
-                name: course.courseTitle,
+            product_data: {
+              name: course.courseTitle,
                 images: course.courseThumbnail ? [course.courseThumbnail] : [],
               },
               unit_amount: Math.round(course.coursePrice * 100), // Amount in cents
             },
             quantity: 1,
-          },
-        ],
-        mode: "payment",
+        },
+      ],
+      mode: "payment",
         success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/course-progress/${courseId}`,
         cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/course-detail/${courseId}`,
-        metadata: {
-          courseId: courseId,
-          userId: userId,
-        },
-        shipping_address_collection: {
+      metadata: {
+        courseId: courseId,
+        userId: userId,
+      },
+      shipping_address_collection: {
           allowed_countries: ["US", "CA", "GB", "DE", "FR", "ES", "IT", "AU", "JP", "IN"], // Expanded countries
-        },
-      });
+      },
+    });
 
-      if (!session.url) {
-        return res
-          .status(400)
+    if (!session.url) {
+      return res
+        .status(400)
           .json({ success: false, message: "Error while creating Stripe session" });
       }
 
