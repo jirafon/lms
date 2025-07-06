@@ -131,11 +131,21 @@ export const extractS3KeyFromUrl = (url) => {
     return key;
   }
   
-  // Handle S3 URLs
+  // Handle regional S3 URLs (e.g., s3.sa-east-1.amazonaws.com)
+  if (url.includes('s3.') && url.includes('.amazonaws.com')) {
+    const urlParts = url.split('/');
+    // Remove protocol, bucket, and get key
+    // URL format: https://bucket.s3.region.amazonaws.com/key
+    const key = urlParts.slice(3).join('/');
+    console.log(`🔑 Extracted regional S3 key: ${key}`);
+    return key;
+  }
+  
+  // Handle legacy S3 URLs (e.g., s3.amazonaws.com)
   if (url.includes('s3.amazonaws.com')) {
     const urlParts = url.split('/');
     const key = urlParts.slice(3).join('/'); // Remove protocol, bucket, and get key
-    console.log(`🔑 Extracted S3 key: ${key}`);
+    console.log(`🔑 Extracted legacy S3 key: ${key}`);
     return key;
   }
   
