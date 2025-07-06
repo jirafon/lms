@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const Course = ({course}) => {
@@ -15,6 +15,35 @@ const Course = ({course}) => {
     creatorPhotoUrl: course.creator?.photoUrl,
     creatorName: course.creator?.name
   });
+
+  // Test image accessibility
+  useEffect(() => {
+    if (course.courseThumbnail) {
+      console.log("🖼️ Testing course thumbnail:", course.courseThumbnail);
+      const testImg = new Image();
+      testImg.onload = () => {
+        console.log("✅ Course thumbnail loads successfully:", course.courseThumbnail);
+      };
+      testImg.onerror = () => {
+        console.log("❌ Course thumbnail failed to load:", course.courseThumbnail);
+        setImageError(true);
+      };
+      testImg.src = course.courseThumbnail;
+    }
+
+    if (course.creator?.photoUrl) {
+      console.log("👤 Testing creator avatar:", course.creator.photoUrl);
+      const testAvatar = new Image();
+      testAvatar.onload = () => {
+        console.log("✅ Creator avatar loads successfully:", course.creator.photoUrl);
+      };
+      testAvatar.onerror = () => {
+        console.log("❌ Creator avatar failed to load:", course.creator.photoUrl);
+        setAvatarError(true);
+      };
+      testAvatar.src = course.creator.photoUrl;
+    }
+  }, [course.courseThumbnail, course.creator?.photoUrl]);
 
   const handleImageError = () => {
     console.log("❌ Course thumbnail failed to load:", course.courseThumbnail);

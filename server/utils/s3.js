@@ -49,7 +49,9 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     await s3.send(command);
     
     // Build a URL based on bucket/region. Adjust if your bucket uses a different endpoint.
-    const url = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
+    // IMPORTANT: Encode the URL properly for browser compatibility
+    const encodedKey = encodeURIComponent(fileKey);
+    const url = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
     
     console.log(`✅ S3 upload successful: ${fileKey}`);
     console.log(`🔗 Generated URL: ${url}`);
@@ -58,6 +60,7 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     console.log(`   Bucket: ${bucketName}`);
     console.log(`   Region: ${region}`);
     console.log(`   Key: ${fileKey}`);
+    console.log(`   Encoded Key: ${encodedKey}`);
     
     return { key: fileKey, url };
   } catch (error) {
@@ -99,13 +102,17 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
     let url;
     
     if (cloudfrontDomain) {
-      url = `https://${cloudfrontDomain}/${fileKey}`;
+      // For CloudFront, we need to encode the key properly
+      const encodedKey = encodeURIComponent(fileKey);
+      url = `https://${cloudfrontDomain}/${encodedKey}`;
       console.log(`✅ S3 video upload successful (CloudFront): ${fileKey}`);
       console.log(`🔗 CloudFront URL: ${url}`);
     } else {
       // Fallback to S3 URL if CloudFront is not configured
       const region = process.env.AWS_REGION;
-      url = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
+      // IMPORTANT: Encode the URL properly for browser compatibility
+      const encodedKey = encodeURIComponent(fileKey);
+      url = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
       console.log(`✅ S3 video upload successful (S3): ${fileKey}`);
       console.log(`🔗 S3 URL: ${url}`);
     }

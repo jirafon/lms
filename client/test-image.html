@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 Image Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-image {
+            max-width: 300px;
+            border: 2px solid #ccc;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>S3 Image Test</h1>
+    
+    <h2>Test 1: Latest Uploaded Image</h2>
+    <div id="test1-status" class="status">Testing...</div>
+    <img id="test1-image" class="test-image" 
+         src="https://repoeticpro.s3.sa-east-1.amazonaws.com/user_photos/1751810806330-Made%20with%20insMind-WhatsApp%20Image%202025-07-02%20at%2012.27.42.jpeg"
+         alt="Test Image 1"
+         onload="document.getElementById('test1-status').innerHTML = '✅ Image loaded successfully!'"
+         onerror="document.getElementById('test1-status').innerHTML = '❌ Image failed to load'">
+    
+    <h2>Test 2: Previous Uploaded Image</h2>
+    <div id="test2-status" class="status">Testing...</div>
+    <img id="test2-image" class="test-image" 
+         src="https://repoeticpro.s3.sa-east-1.amazonaws.com/user_photos/1751784337549-WhatsApp%20Image%202025-06-25%20at%2000.27.40%20(3).jpeg"
+         alt="Test Image 2"
+         onload="document.getElementById('test2-status').innerHTML = '✅ Image loaded successfully!'"
+         onerror="document.getElementById('test2-status').innerHTML = '❌ Image failed to load'">
+    
+    <h2>Test 3: Direct URL Test</h2>
+    <p>Try opening these URLs directly in your browser:</p>
+    <ul>
+        <li><a href="https://repoeticpro.s3.sa-east-1.amazonaws.com/user_photos/1751810806330-Made%20with%20insMind-WhatsApp%20Image%202025-07-02%20at%2012.27.42.jpeg" target="_blank">Latest Image</a></li>
+        <li><a href="https://repoeticpro.s3.sa-east-1.amazonaws.com/user_photos/1751784337549-WhatsApp%20Image%202025-06-25%20at%2000.27.40%20(3).jpeg" target="_blank">Previous Image</a></li>
+    </ul>
+    
+    <script>
+        console.log('Testing S3 image accessibility...');
+        
+        // Test with fetch
+        fetch('https://repoeticpro.s3.sa-east-1.amazonaws.com/user_photos/1751810806330-Made%20with%20insMind-WhatsApp%20Image%202025-07-02%20at%2012.27.42.jpeg')
+            .then(response => {
+                console.log('Fetch response status:', response.status);
+                if (response.ok) {
+                    console.log('✅ Image is accessible via fetch');
+                } else {
+                    console.log('❌ Image not accessible via fetch');
+                }
+            })
+            .catch(error => {
+                console.log('❌ Fetch error:', error);
+            });
+    </script>
+</body>
+</html> 

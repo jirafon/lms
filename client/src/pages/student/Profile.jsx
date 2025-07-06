@@ -68,8 +68,22 @@ const Profile = () => {
 
   const user = data && data.user;
 
-  console.log(user);
+  console.log("👤 Profile component - User data:", {
+    name: user?.name,
+    email: user?.email,
+    photoUrl: user?.photoUrl,
+    hasPhotoUrl: !!user?.photoUrl
+  });
   
+  // Test if the photo URL is accessible
+  if (user?.photoUrl) {
+    console.log("🖼️ Testing photo URL accessibility:", user.photoUrl);
+    // Create a test image to check if it loads
+    const testImg = new Image();
+    testImg.onload = () => console.log("✅ Photo URL is accessible and loads correctly");
+    testImg.onerror = () => console.log("❌ Photo URL failed to load:", user.photoUrl);
+    testImg.src = user.photoUrl;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 my-10">
