@@ -7,7 +7,7 @@ import {
   useInCompleteCourseMutation,
   useUpdateLectureProgressMutation,
 } from "@/features/api/courseProgressApi";
-import { CheckCircle, CheckCircle2, CirclePlay } from "lucide-react";
+import { CheckCircle, CheckCircle2, CirclePlay, AlertTriangle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -27,6 +27,8 @@ const CourseProgress = () => {
     inCompleteCourse,
     { data: markInCompleteData, isSuccess: inCompletedSuccess },
   ] = useInCompleteCourseMutation();
+
+  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     console.log(markCompleteData);
@@ -69,6 +71,9 @@ const CourseProgress = () => {
     handleLectureProgress(lecture._id);
   };
 
+  const handleVideoError = () => {
+    setVideoError(true);
+  };
 
   const handleCompleteCourse = async () => {
     await completeCourse(courseId);
@@ -100,14 +105,37 @@ const CourseProgress = () => {
         {/* Video section  */}
         <div className="flex-1 md:w-3/5 h-fit rounded-lg shadow-lg p-4">
           <div>
-            <video
-              src={currentLecture?.videoUrl || initialLecture.videoUrl}
-              controls
-              className="w-full h-auto md:rounded-lg"
-              onPlay={() =>
-                handleLectureProgress(currentLecture?._id || initialLecture._id)
-              }
-            />
+            {videoError ? (
+              <div className="w-full h-64 bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-6">
+                <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Video no disponible</h3>
+                <p className="text-sm text-gray-600 text-center mb-4">
+                  El video no se puede reproducir porque la configuración de S3 no está completa en Render.
+                </p>
+                <div className="text-xs text-gray-500 text-center">
+                  <p>Para solucionarlo:</p>
+                  <p>1. Configura las variables de entorno de S3 en Render</p>
+                  <p>2. O contacta al administrador</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setVideoError(false)}
+                >
+                  Intentar de nuevo
+                </Button>
+              </div>
+            ) : (
+              <video
+                src={currentLecture?.videoUrl || initialLecture?.videoUrl}
+                controls
+                className="w-full h-auto md:rounded-lg"
+                onPlay={() =>
+                  handleLectureProgress(currentLecture?._id || initialLecture?._id)
+                }
+                onError={handleVideoError}
+              />
+            )}
           </div>
           {/* Display current watching lecture title */}
           <div className="mt-2 ">
@@ -115,10 +143,10 @@ const CourseProgress = () => {
               {`Lecture ${
                 courseDetails.lectures.findIndex(
                   (lec) =>
-                    lec._id === (currentLecture?._id || initialLecture._id)
+                    lec._id === (currentLecture?._id || initialLecture?._id)
                 ) + 1
               } : ${
-                currentLecture?.lectureTitle || initialLecture.lectureTitle
+                currentLecture?.lectureTitle || initialLecture?.lectureTitle
               }`}
             </h3>
           </div>

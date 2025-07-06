@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
-import { BadgeInfo, Lock, PlayCircle, BarChart3 } from "lucide-react";
+import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useNavigate, useParams } from "react-router-dom";
 import TakeQuiz from "@/components/TakeQuiz";
 import axios from "axios";
 import CreateQuiz from "@/components/CreateQuiz";
+import { toast } from "sonner";
 
 const CourseDetail = () => {
   const params = useParams();
@@ -106,6 +107,19 @@ const CourseDetail = () => {
                   height={"100%"}
                   url={course.lectures[0].videoUrl}
                   controls={true}
+                  onError={(e) => {
+                    console.error("Video error:", e);
+                    toast.error("Video no disponible - Configuración de S3 requerida");
+                  }}
+                  fallback={
+                    <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-6">
+                      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Video no disponible</h3>
+                      <p className="text-sm text-gray-600 text-center">
+                        Configuración de S3 requerida en Render
+                      </p>
+                    </div>
+                  }
                 />
               </div>
               {/* Quiz Section for the first lecture */}
