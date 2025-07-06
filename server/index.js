@@ -10,8 +10,28 @@ import purchaseRoute from "./routes/purchaseCourse.route.js";
 import courseProgressRoute from "./routes/courseProgress.route.js";
 import quizRoute from "./routes/quiz.route.js";
 import certificateRoute from "./routes/certificate.route.js";
+import fs from "fs";
+import path from "path";
 
 dotenv.config({});
+
+// Create logs directory if it doesn't exist
+const logsDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir);
+}
+
+// Create write streams for different log types
+const s3LogStream = fs.createWriteStream(path.join(logsDir, 's3.log'), { flags: 'a' });
+const appLogStream = fs.createWriteStream(path.join(logsDir, 'app.log'), { flags: 'a' });
+
+// Custom logging function
+const logToFile = (stream, message) => {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  stream.write(logMessage);
+  console.log(message); // Also log to console
+};
 
 // call database connection here
 connectDB();

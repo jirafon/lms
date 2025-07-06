@@ -50,18 +50,29 @@ const LectureTab = () => {
   const fileChangeHandler = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log("🎥 Video upload started from frontend");
+      console.log("📁 File name:", file.name);
+      console.log("📏 File size:", file.size, "bytes");
+      console.log("🔧 File type:", file.type);
+      
       const formData = new FormData();
       formData.append("file", file);
       setMediaProgress(true);
       try {
+        console.log("🚀 Sending video to server...");
         const res = await axios.post(`${MEDIA_API}/upload-video`, formData, {
           onUploadProgress: ({ loaded, total }) => {
-            setUploadProgress(Math.round((loaded * 100) / total));
+            const progress = Math.round((loaded * 100) / total);
+            setUploadProgress(progress);
+            console.log(`📊 Upload progress: ${progress}%`);
           },
         });
 
         if (res.data.success) {
-          console.log(res);
+          console.log("✅ Video upload successful");
+          console.log("🔗 Video URL:", res.data.data.url);
+          console.log("🔑 S3 Key:", res.data.data.key);
+          
           setUploadVideoInfo({
             videoUrl: res.data.data.url,
             publicId: res.data.data.public_id,
@@ -70,10 +81,14 @@ const LectureTab = () => {
           toast.success(res.data.message);
         }
       } catch (error) {
-        console.log(error);
-        toast.error("video upload failed");
+        console.error("❌ Video upload failed");
+        console.error("🔍 Error response:", error.response?.data);
+        console.error("📋 Full error:", error);
+        
+        toast.error("Video upload failed");
       } finally {
         setMediaProgress(false);
+        console.log("🏁 Video upload process completed");
       }
     }
   };
