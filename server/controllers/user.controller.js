@@ -1,7 +1,7 @@
 import {User} from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/generateToken.js";
-import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
+import { deleteMediaFromS3, uploadMedia, extractS3KeyFromUrl } from "../utils/s3.js";
 
 export const register = async (req,res) => {
     try {
@@ -120,15 +120,18 @@ export const updateProfile = async (req,res) => {
                 success:false
             }) 
         }
-        // extract public id of the old image from the url is it exists;
-        if(user.photoUrl){
-            const publicId = user.photoUrl.split("/").pop().split(".")[0]; // extract public id
-            deleteMediaFromCloudinary(publicId);
+        
+        // Delete old photo from S3 if it exists
+        if(user.photoUrl && (user.photoUrl.includes('s3') || user.photoUrl.includes('cloudfront'))){
+            const key = extractS3KeyFromUrl(user.photoUrl);
+            if (key) {
+                await deleteMediaFromS3(key);
+            }
         }
 
-        // upload new photo
-        const cloudResponse = await uploadMedia(profilePhoto.path);
-        const photoUrl = cloudResponse.secure_url;
+        // Upload new photo to S3
+        const s3Response = await uploadMedia(profilePhoto.path, profilePhoto.originalname);
+        const photoUrl = s3Response.url;
 
         const updatedData = {name, photoUrl};
         const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {new:true}).select("-password");

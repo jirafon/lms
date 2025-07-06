@@ -1,7 +1,6 @@
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
-import {deleteMediaFromCloudinary, deleteVideoFromCloudinary, uploadMedia} from "../utils/cloudinary.js";
-import { deleteVideoFromS3, extractS3KeyFromUrl } from "../utils/s3.js";
+import { uploadMedia, deleteMediaFromS3, extractS3KeyFromUrl, deleteVideoFromS3 } from "../utils/s3.js";
 
 export const createCourse = async (req,res) => {
     try {
@@ -123,16 +122,19 @@ export const editCourse = async (req,res) => {
         }
         let courseThumbnail;
         if(thumbnail){
-            if(course.courseThumbnail){
-                const publicId = course.courseThumbnail.split("/").pop().split(".")[0];
-                await deleteMediaFromCloudinary(publicId); // delete old image
+            // Delete old thumbnail from S3 if it exists
+            if(course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))){
+                const key = extractS3KeyFromUrl(course.courseThumbnail);
+                if (key) {
+                    await deleteMediaFromS3(key);
+                }
             }
-            // upload a thumbnail on clourdinary
-            courseThumbnail = await uploadMedia(thumbnail.path);
+            // Upload new thumbnail to S3
+            const s3Response = await uploadMedia(thumbnail.path, thumbnail.originalname);
+            courseThumbnail = s3Response.url;
         }
 
- 
-        const updateData = {courseTitle, subTitle, description, category, courseLevel, coursePrice, courseThumbnail:courseThumbnail?.secure_url};
+        const updateData = {courseTitle, subTitle, description, category, courseLevel, coursePrice, courseThumbnail};
 
         course = await Course.findByIdAndUpdate(courseId, updateData, {new:true});
 
@@ -276,7 +278,7 @@ export const removeLecture = async (req,res) => {
             }
         } else if(lecture.publicId){
             // Fallback to Cloudinary if it's an old video
-            await deleteVideoFromCloudinary(lecture.publicId);
+            await deleteVideoFromS3(lecture.publicId);
         }
 
         // Remove the lecture reference from the associated course
