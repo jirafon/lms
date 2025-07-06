@@ -2,6 +2,7 @@
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config();
 
@@ -39,11 +40,30 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
   console.log(`📤 Starting S3 upload: ${fileKey}`);
   console.log(`📁 File: ${originalName}`);
   console.log(`🪣 Bucket: ${bucketName}`);
+  console.log(`📂 File path: ${filePathOrBuffer}`);
+
+  // Read the file properly
+  let fileBuffer;
+  try {
+    if (typeof filePathOrBuffer === 'string') {
+      // It's a file path, read the file
+      console.log(`📖 Reading file from path: ${filePathOrBuffer}`);
+      fileBuffer = fs.readFileSync(filePathOrBuffer);
+      console.log(`📏 File size read: ${fileBuffer.length} bytes`);
+    } else {
+      // It's already a buffer
+      fileBuffer = filePathOrBuffer;
+      console.log(`📏 Buffer size: ${fileBuffer.length} bytes`);
+    }
+  } catch (error) {
+    console.error(`❌ Error reading file: ${error.message}`);
+    throw error;
+  }
 
   const uploadParams = {
     Bucket: bucketName,
     Key: fileKey,
-    Body: filePathOrBuffer,
+    Body: fileBuffer,
     ContentType: 'image/jpeg', // Set proper content type
     // Remove the ACL line—S3 will use the bucket's policy instead:
     // ACL: "public-read",
@@ -88,11 +108,30 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
   console.log(`🎥 Starting S3 video upload: ${fileKey}`);
   console.log(`📁 Video: ${originalName}`);
   console.log(`🪣 Bucket: ${bucketName}`);
+  console.log(`📂 File path: ${filePathOrBuffer}`);
+
+  // Read the file properly
+  let fileBuffer;
+  try {
+    if (typeof filePathOrBuffer === 'string') {
+      // It's a file path, read the file
+      console.log(`📖 Reading video file from path: ${filePathOrBuffer}`);
+      fileBuffer = fs.readFileSync(filePathOrBuffer);
+      console.log(`📏 Video file size read: ${fileBuffer.length} bytes`);
+    } else {
+      // It's already a buffer
+      fileBuffer = filePathOrBuffer;
+      console.log(`📏 Video buffer size: ${fileBuffer.length} bytes`);
+    }
+  } catch (error) {
+    console.error(`❌ Error reading video file: ${error.message}`);
+    throw error;
+  }
 
   const uploadParams = {
     Bucket: bucketName,
     Key: fileKey,
-    Body: filePathOrBuffer,
+    Body: fileBuffer,
     ContentType: 'video/mp4', // Adjust based on your video format
     // Remove the ACL line—S3 will use the bucket's policy instead:
     // ACL: "public-read",
