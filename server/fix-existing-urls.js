@@ -6,6 +6,11 @@ import { Course } from "./models/course.model.js";
 
 dotenv.config();
 
+// Custom function to encode URLs for S3 (using + for spaces instead of %20)
+const encodeS3Url = (key) => {
+  return key.replace(/\s/g, '+');
+};
+
 const fixExistingUrls = async () => {
   try {
     console.log('🔧 Fixing existing URLs in database...');
@@ -29,7 +34,7 @@ const fixExistingUrls = async () => {
         // Create new properly encoded URL
         const bucketName = process.env.S3_BUCKET_NAME;
         const region = process.env.AWS_REGION;
-        const encodedKey = encodeURIComponent(key);
+        const encodedKey = encodeS3Url(key);
         const newUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
         
         if (oldUrl !== newUrl) {
@@ -58,7 +63,7 @@ const fixExistingUrls = async () => {
         // Create new properly encoded URL
         const bucketName = process.env.S3_BUCKET_NAME;
         const region = process.env.AWS_REGION;
-        const encodedKey = encodeURIComponent(key);
+        const encodedKey = encodeS3Url(key);
         const newUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
         
         if (oldUrl !== newUrl) {
