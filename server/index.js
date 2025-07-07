@@ -38,9 +38,37 @@ connectDB();
 const app = express();
 
 
-// default middleware
+// default middleware with color-coded status logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  const start = Date.now();
+  
+  // Override res.end to capture the status code
+  const originalEnd = res.end;
+  res.end = function(chunk, encoding) {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    
+    // Color codes for different status ranges
+    let colorCode;
+    if (status >= 200 && status < 300) {
+      colorCode = '\x1b[32m'; // Green for 2xx
+    } else if (status >= 400 && status < 500) {
+      colorCode = '\x1b[31m'; // Red for 4xx
+    } else if (status >= 500) {
+      colorCode = '\x1b[35m'; // Magenta for 5xx
+    } else {
+      colorCode = '\x1b[33m'; // Yellow for other status codes
+    }
+    
+    const resetColor = '\x1b[0m';
+    const timestamp = new Date().toISOString();
+    
+    console.log(`[${timestamp}] ${req.method} ${req.url} ${colorCode}${status}${resetColor} - ${duration}ms`);
+    
+    // Call the original end method
+    originalEnd.call(this, chunk, encoding);
+  };
+  
   next();
 });
 app.use(express.json());

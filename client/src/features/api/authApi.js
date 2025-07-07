@@ -3,7 +3,9 @@ import { userLoggedIn, userLoggedOut } from "../authSlice";
 
 // const USER_API = "http://localhost:3010/api/v1/user/"
 
-const USER_API = import.meta.env.VITE_API_BASE_URL + "/user/";
+const USER_API = import.meta.env.VITE_API_BASE_URL 
+  ? import.meta.env.VITE_API_BASE_URL + "/user"
+  : "http://localhost:3010/api/v1/user";
 
 export const authApi = createApi({
     reducerPath:"authApi",

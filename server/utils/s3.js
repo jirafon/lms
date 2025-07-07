@@ -152,11 +152,15 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
     throw error;
   }
 
+  // Get the correct content type for videos
+  const contentType = getContentType(originalName);
+  console.log(`🔧 Video content type: ${contentType}`);
+
   const uploadParams = {
     Bucket: bucketName,
     Key: fileKey,
     Body: fileBuffer,
-    ContentType: 'video/mp4', // Adjust based on your video format
+    ContentType: contentType,
     // Remove the ACL line—S3 will use the bucket's policy instead:
     // ACL: "public-read",
   };

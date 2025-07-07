@@ -134,7 +134,16 @@ export const editCourse = async (req,res) => {
             courseThumbnail = s3Response.url;
         }
 
-        const updateData = {courseTitle, subTitle, description, category, courseLevel, coursePrice, courseThumbnail};
+        // Build updateData object with proper validation
+        const updateData = {courseTitle, subTitle, description, category, courseLevel, courseThumbnail};
+        
+        // Only include coursePrice if it's a valid number
+        if (coursePrice !== undefined && coursePrice !== null && coursePrice !== "" && coursePrice !== "undefined") {
+            const numericPrice = Number(coursePrice);
+            if (!isNaN(numericPrice)) {
+                updateData.coursePrice = numericPrice;
+            }
+        }
 
         course = await Course.findByIdAndUpdate(courseId, updateData, {new:true});
 
@@ -345,6 +354,67 @@ export const togglePublishCourse = async (req,res) => {
         console.log(error);
         return res.status(500).json({
             message:"Failed to update status"
+        })
+    }
+}
+
+export const removeCourse = async (req,res) => {
+    try {
+        const {courseId} = req.params;
+        const userId = req.id;
+
+        // Find the course and verify ownership
+        const course = await Course.findById(courseId);
+        if(!course){
+            return res.status(404).json({
+                message:"Course not found!"
+            });
+        }
+
+        // Check if the user is the creator of the course
+        if(course.creator.toString() !== userId){
+            return res.status(403).json({
+                message:"You are not authorized to delete this course!"
+            });
+        }
+
+        // Delete course thumbnail from S3 if it exists
+        if(course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))){
+            const key = extractS3KeyFromUrl(course.courseThumbnail);
+            if (key) {
+                await deleteMediaFromS3(key);
+            }
+        }
+
+        // Delete all lectures and their videos
+        for(const lectureId of course.lectures){
+            const lecture = await Lecture.findById(lectureId);
+            if(lecture){
+                // Delete video from S3
+                if(lecture.videoUrl && (lecture.videoUrl.includes('s3') || lecture.videoUrl.includes('cloudfront'))){
+                    const key = extractS3KeyFromUrl(lecture.videoUrl);
+                    if (key) {
+                        await deleteVideoFromS3(key);
+                    }
+                } else if(lecture.publicId){
+                    // Fallback to Cloudinary if it's an old video
+                    await deleteVideoFromS3(lecture.publicId);
+                }
+                // Delete the lecture
+                await Lecture.findByIdAndDelete(lectureId);
+            }
+        }
+
+        // Delete the course
+        await Course.findByIdAndDelete(courseId);
+
+        return res.status(200).json({
+            message:"Course removed successfully."
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message:"Failed to remove course"
         })
     }
 }
