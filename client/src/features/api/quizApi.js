@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 
 const QUIZ_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/quiz"
@@ -10,6 +11,7 @@ export const quizApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: QUIZ_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     // Create quiz for a course

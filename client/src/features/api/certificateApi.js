@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 
 const CERTIFICATE_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/certificate"
@@ -10,6 +11,7 @@ export const certificateApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: CERTIFICATE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     // Get user certificates

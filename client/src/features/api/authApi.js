@@ -1,5 +1,6 @@
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../authSlice";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 
 // const USER_API = "http://localhost:3010/api/v1/user/"
 
@@ -11,7 +12,8 @@ export const authApi = createApi({
     reducerPath:"authApi",
     baseQuery:fetchBaseQuery({
         baseUrl:USER_API,
-        credentials:'include'
+        credentials:'include',
+        prepareHeaders: prepareAuthHeaders,
     }),
     endpoints: (builder) => ({
         registerUser: builder.mutation({
@@ -30,6 +32,9 @@ export const authApi = createApi({
             async onQueryStarted(_, {queryFulfilled, dispatch}) {
                 try {
                     const result = await queryFulfilled;
+                    if (result.data.token) {
+                        localStorage.setItem("token", result.data.token);
+                    }
                     dispatch(userLoggedIn({user:result.data.user}));
                 } catch (error) {
                     console.log(error);
@@ -43,6 +48,7 @@ export const authApi = createApi({
             }),
             async onQueryStarted(_, {queryFulfilled, dispatch}) {
                 try { 
+                    localStorage.removeItem("token");
                     dispatch(userLoggedOut());
                 } catch (error) {
                     console.log(error);

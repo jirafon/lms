@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 
 //const COURSE_PURCHASE_API = "http://localhost:3010/api/v1/purchase";
 
@@ -11,6 +12,7 @@ export const purchaseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PURCHASE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     createCheckoutSession: builder.mutation({

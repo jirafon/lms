@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 // Opción 1: importar y luego llamar a .config()
 
 ///const COURSE_PROGRESS_API = "http://localhost:3010/api/v1/progress";
@@ -12,6 +13,7 @@ export const courseProgressApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PROGRESS_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     getCourseProgress: builder.query({

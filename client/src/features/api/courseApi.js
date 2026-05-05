@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { prepareAuthHeaders } from "./prepareAuthHeaders";
 
 const COURSE_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/course"
@@ -10,6 +11,7 @@ export const courseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_API,
     credentials: "include",
+    prepareHeaders: prepareAuthHeaders,
   }),
   endpoints: (builder) => ({
     createCourse: builder.mutation({
