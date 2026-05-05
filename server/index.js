@@ -12,6 +12,7 @@ import quizRoute from "./routes/quiz.route.js";
 import certificateRoute from "./routes/certificate.route.js";
 import fs from "fs";
 import path from "path";
+import instructorRoutes from "./routes/instructor.route.js";
 
 dotenv.config({});
 
@@ -92,6 +93,7 @@ app.use("/api/v1/purchase", purchaseRoute);
 app.use("/api/v1/progress", courseProgressRoute);
 app.use("/api/v1/quiz", quizRoute);
 app.use("/api/v1/certificate", certificateRoute);
+app.use('/api/v1/instructor', instructorRoutes);
  
  
 // Instead of hard‐coding a port, read from process.env.PORT:

@@ -258,5 +258,19 @@
     "unauthorized": "Unauthorized access",
     "not_found": "Resource not found",
     "validation_error": "Validation error"
+  },
+  "courseDetail": {
+    "title": "Course: {{courseTitle}}",
+    "description": "Description: {{description}}",
+    "lectures": "Lectures",
+    "progress": "Progress",
+    "quiz": "Quiz",
+    "buy": "Buy Course",
+    "continue": "Continue Course"
+  },
+  "courseCategories": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
   }
-} 
+}

@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import "./App.css";
 import Login from "./pages/Login";
 import HeroSection from "./pages/student/HeroSection";
@@ -97,6 +97,10 @@ const appRouter = createBrowserRouter([
           </AdminRoute>
         ),
         children: [
+          {
+            index: true,
+            element: <Navigate to="course" replace />,
+          },
           {
             path: "dashboard",
             element: <Dashboard />,

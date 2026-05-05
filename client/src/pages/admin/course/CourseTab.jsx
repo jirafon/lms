@@ -19,12 +19,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   useEditCourseMutation,
   useGetCourseByIdQuery,
   usePublishCourseMutation,
   useRemoveCourseMutation,
 } from "@/features/api/courseApi";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreVertical, Settings, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -67,6 +82,8 @@ const CourseTab = () => {
   }, [courseByIdData]);
 
   const [previewThumbnail, setPreviewThumbnail] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const navigate = useNavigate();
 
   const [editCourse, { data, isLoading, isSuccess, error }] =
@@ -139,19 +156,29 @@ const CourseTab = () => {
     }
   }
 
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+    setDeleteConfirmText("");
+  };
+
   const removeCourseHandler = async () => {
-    const confirmed = window.confirm(t('course.course_removal_confirmation'));
+    const expectedText = courseByIdData?.course?.courseTitle || "";
     
-    if (confirmed) {
-      try {
-        const response = await removeCourse(courseId);
-        if (response.data) {
-          toast.success(response.data.message || t('course.course_removed_successfully'));
-          navigate("/admin/course");
-        }
-      } catch (error) {
-        toast.error(error.data?.message || t('course.error_removing_course'));
+    if (deleteConfirmText !== expectedText) {
+      toast.error("El texto no coincide con el nombre del curso");
+      return;
+    }
+
+    try {
+      const response = await removeCourse(courseId);
+      if (response.data) {
+        toast.success(response.data.message || t('course.course_removed_successfully'));
+        navigate("/admin/course");
       }
+    } catch (error) {
+      toast.error(error.data?.message || t('course.error_removing_course'));
+    } finally {
+      setShowDeleteDialog(false);
     }
   };
 
@@ -175,24 +202,33 @@ const CourseTab = () => {
             {t('course.make_changes_description')}
           </CardDescription>
         </div>
-        <div className="space-x-2">
+        <div className="flex items-center space-x-2">
           <Button disabled={courseByIdData?.course.lectures.length === 0} variant="outline" onClick={()=> publishStatusHandler(courseByIdData?.course.isPublished ? "false" : "true")}>
             {courseByIdData?.course.isPublished ? t('course.unpublished') : t('course.publish_course')}
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={removeCourseHandler}
-            disabled={isRemoving}
-          >
-            {isRemoving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('course.removing')}
-              </>
-            ) : (
-              t('course.remove_course')
-            )}
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración avanzada
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleDeleteClick} 
+                className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+                disabled={isRemoving}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {isRemoving ? 'Eliminando...' : 'Eliminar curso'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
@@ -297,6 +333,11 @@ const CourseTab = () => {
                     <SelectItem value="Talent Management">Gestión del Talento</SelectItem>
                     <SelectItem value="Succession Planning">Planificación de Sucesión</SelectItem>
                     <SelectItem value="Performance Management">Gestión del Desempeño</SelectItem>
+                    
+                    {/* MPD, Privacidad e Integridad */}
+                    <SelectItem value="MPD">MPD</SelectItem>
+                    <SelectItem value="Data Privacy">Privacidad de Datos</SelectItem>
+                    <SelectItem value="Integrity">Integridad</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -370,6 +411,64 @@ const CourseTab = () => {
           </div>
         </div>
       </CardContent>
+
+      {/* Dialog de confirmación para eliminar curso */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">⚠️ Eliminar Curso Permanentemente</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Esta acción <strong>NO SE PUEDE DESHACER</strong>.</p>
+              <p>Se eliminará:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 ml-4">
+                <li>El curso completo</li>
+                <li>Todas las lecturas</li>
+                <li>Todos los quizzes</li>
+                <li>Todo el progreso de estudiantes</li>
+                <li>Todas las compras asociadas</li>
+              </ul>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="confirmText" className="text-sm font-medium">
+                Para confirmar, escribe el nombre exacto del curso:
+              </Label>
+              <p className="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">
+                {courseByIdData?.course?.courseTitle}
+              </p>
+              <Input
+                id="confirmText"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Escribe el nombre del curso aquí"
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={removeCourseHandler}
+              disabled={deleteConfirmText !== courseByIdData?.course?.courseTitle || isRemoving}
+            >
+              {isRemoving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                'Eliminar Permanentemente'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

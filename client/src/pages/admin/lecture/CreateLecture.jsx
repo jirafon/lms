@@ -5,14 +5,20 @@ import {
   useCreateLectureMutation,
   useGetCourseLectureQuery,
 } from "@/features/api/courseApi";
+import axios from "axios";
 import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import Lecture from "./Lecture";
 
+const MEDIA_API = import.meta.env.VITE_API_BASE_URL + "/media/";
+
 const CreateLecture = () => {
   const [lectureTitle, setLectureTitle] = useState("");
+  const [lectureDescription, setLectureDescription] = useState("");
+  const [supportMaterials, setSupportMaterials] = useState([]);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const params = useParams();
   const courseId = params.courseId;
   const navigate = useNavigate();
@@ -27,14 +33,57 @@ const CreateLecture = () => {
     refetch,
   } = useGetCourseLectureQuery(courseId);
 
+  const supportMaterialChangeHandler = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
+      return;
+    }
+    setIsUploadingMaterial(true);
+
+    try {
+      const uploadedMaterials = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await axios.post(`${MEDIA_API}/upload-support-material`, formData);
+        if (res.data.success) {
+          uploadedMaterials.push({
+            name: file.name,
+            url: res.data.data.url,
+            key: res.data.data.key,
+          });
+        }
+      }
+
+      if (uploadedMaterials.length > 0) {
+        setSupportMaterials((current) => [...current, ...uploadedMaterials]);
+        toast.success(`${uploadedMaterials.length} file(s) uploaded successfully.`);
+      }
+    } catch (uploadError) {
+      toast.error(uploadError.response?.data?.message || "Failed to upload support material");
+    } finally {
+      setIsUploadingMaterial(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeSupportMaterial = (materialUrl) => {
+    setSupportMaterials((current) => current.filter((material) => material.url !== materialUrl));
+  };
+
   const createLectureHandler = async () => {
-    await createLecture({ lectureTitle, courseId });
+    await createLecture({ lectureTitle, lectureDescription, supportMaterials, courseId });
   };
 
   useEffect(() => {
     if (isSuccess) {
       refetch();
       toast.success(data.message);
+      setLectureTitle("");
+      setLectureDescription("");
+      setSupportMaterials([]);
     }
     if (error) {
       toast.error(error.data.message);
@@ -64,6 +113,37 @@ const CreateLecture = () => {
             placeholder="Your Title Name"
           />
         </div>
+        <div>
+          <Label>Description</Label>
+          <textarea
+            value={lectureDescription}
+            onChange={(e) => setLectureDescription(e.target.value)}
+            placeholder="Short description for this lecture"
+            className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          />
+        </div>
+        <div>
+          <Label>Downloadable files</Label>
+          <Input
+            type="file"
+            multiple
+            onChange={supportMaterialChangeHandler}
+            className="w-fit"
+          />
+          {isUploadingMaterial && <p className="text-sm text-muted-foreground mt-2">Uploading file...</p>}
+          {supportMaterials.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {supportMaterials.map((material) => (
+                <div key={material.url} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                  <span className="truncate">{material.name}</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeSupportMaterial(material.url)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -71,7 +151,7 @@ const CreateLecture = () => {
           >
             Back to course
           </Button>
-          <Button disabled={isLoading} onClick={createLectureHandler}>
+          <Button disabled={isLoading || isUploadingMaterial} onClick={createLectureHandler}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

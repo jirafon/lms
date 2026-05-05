@@ -1,6 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCaption,
@@ -10,59 +17,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useGetCreatorCourseQuery } from "@/features/api/courseApi";
-import { Edit } from "lucide-react";
-import React from "react";
+import { useGetCreatorCourseQuery, useLazyGetCourseStudentsQuery } from "@/features/api/courseApi";
+import { Edit, Users } from "lucide-react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const invoices = [
-  {
-    invoice: "INV001",
-    paymentStatus: "Paid",
-    totalAmount: "$250.00",
-    paymentMethod: "Credit Card",
-  },
-  {
-    invoice: "INV002",
-    paymentStatus: "Pending",
-    totalAmount: "$150.00",
-    paymentMethod: "PayPal",
-  },
-  {
-    invoice: "INV003",
-    paymentStatus: "Unpaid",
-    totalAmount: "$350.00",
-    paymentMethod: "Bank Transfer",
-  },
-  {
-    invoice: "INV004",
-    paymentStatus: "Paid",
-    totalAmount: "$450.00",
-    paymentMethod: "Credit Card",
-  },
-  {
-    invoice: "INV005",
-    paymentStatus: "Paid",
-    totalAmount: "$550.00",
-    paymentMethod: "PayPal",
-  },
-  {
-    invoice: "INV006",
-    paymentStatus: "Pending",
-    totalAmount: "$200.00",
-    paymentMethod: "Bank Transfer",
-  },
-  {
-    invoice: "INV007",
-    paymentStatus: "Unpaid",
-    totalAmount: "$300.00",
-    paymentMethod: "Credit Card",
-  },
-];
 
 const CourseTable = () => {
     const {data, isLoading, error} = useGetCreatorCourseQuery();
+  const [studentsDialogOpen, setStudentsDialogOpen] = useState(false);
+  const [selectedCourseTitle, setSelectedCourseTitle] = useState("");
+  const [getCourseStudents, { data: studentsData, isFetching: isStudentsLoading, error: studentsError }] = useLazyGetCourseStudentsQuery();
   const navigate = useNavigate();
+
+  const handleOpenStudents = async (course) => {
+    setSelectedCourseTitle(course.courseTitle);
+    setStudentsDialogOpen(true);
+    getCourseStudents(course._id);
+  };
 
   if(isLoading) return <h1>Loading...</h1>;
   if(error) return <h1>Error loading courses.</h1>;
@@ -88,12 +59,63 @@ const CourseTable = () => {
               <TableCell> <Badge>{course.isPublished ? "Published" : "Draft"}</Badge> </TableCell>
               <TableCell>{course.courseTitle}</TableCell>
               <TableCell className="text-right">
-                 <Button size='sm' variant='ghost' onClick={() => navigate(`${course._id}`)}><Edit/></Button>
+                <div className="flex justify-end gap-1">
+                  <Button size='sm' variant='ghost' onClick={() => handleOpenStudents(course)}>
+                    <Users />
+                  </Button>
+                  <Button size='sm' variant='ghost' onClick={() => navigate(`${course._id}`)}><Edit/></Button>
+                </div>
               </TableCell>
             </TableRow>
           )) || []}
         </TableBody>
       </Table>
+
+      <Dialog open={studentsDialogOpen} onOpenChange={setStudentsDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Students</DialogTitle>
+            <DialogDescription>
+              {selectedCourseTitle ? `Students enrolled in ${selectedCourseTitle}` : "Students enrolled in this course"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isStudentsLoading ? (
+            <p>Loading students...</p>
+          ) : studentsError ? (
+            <p className="text-red-500">Failed to load students.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>ID Contract</TableHead>
+                  <TableHead>Client</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {studentsData?.students?.length ? (
+                  studentsData.students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.idcontrato}</TableCell>
+                      <TableCell>{student.clientName}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      No students found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

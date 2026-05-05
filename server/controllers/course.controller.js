@@ -1,4 +1,5 @@
 import { Course } from "../models/course.model.js";
+import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { uploadMedia, deleteMediaFromS3, extractS3KeyFromUrl, deleteVideoFromS3 } from "../utils/s3.js";
 
@@ -108,6 +109,56 @@ export const getCreatorCourses = async (req,res) => {
         })
     }
 }
+
+export const getCourseStudents = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const userId = req.id;
+
+        const course = await Course.findOne({ _id: courseId, creator: userId }).select("_id courseTitle");
+        if (!course) {
+            return res.status(404).json({
+                message: "Course not found"
+            });
+        }
+
+        const purchases = await CoursePurchase.find({
+            courseId,
+            status: "completed",
+        }).populate({
+            path: "userId",
+            select: "name email idcontrato idcompany",
+        });
+
+        const uniqueStudents = new Map();
+
+        for (const purchase of purchases) {
+            const student = purchase.userId;
+            if (!student) {
+                continue;
+            }
+
+            uniqueStudents.set(String(student._id), {
+                id: student._id,
+                name: student.name || "N/A",
+                email: student.email || "N/A",
+                idcontrato: student.idcontrato || "N/A",
+                clientName: student.idcompany || "N/A",
+            });
+        }
+
+        return res.status(200).json({
+            courseTitle: course.courseTitle,
+            students: Array.from(uniqueStudents.values()),
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Failed to load course students"
+        });
+    }
+}
+
 export const editCourse = async (req,res) => {
     try {
         const courseId = req.params.courseId;
@@ -115,15 +166,15 @@ export const editCourse = async (req,res) => {
         const thumbnail = req.file;
 
         let course = await Course.findById(courseId);
-        if(!course){
+        if (!course) {
             return res.status(404).json({
-                message:"Course not found!"
-            })
+                message: "Course not found!"
+            });
         }
         let courseThumbnail;
-        if(thumbnail){
+        if (thumbnail) {
             // Delete old thumbnail from S3 if it exists
-            if(course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))){
+            if (course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))) {
                 const key = extractS3KeyFromUrl(course.courseThumbnail);
                 if (key) {
                     await deleteMediaFromS3(key);
@@ -135,8 +186,8 @@ export const editCourse = async (req,res) => {
         }
 
         // Build updateData object with proper validation
-        const updateData = {courseTitle, subTitle, description, category, courseLevel, courseThumbnail};
-        
+        const updateData = { courseTitle, subTitle, description, category, courseLevel, courseThumbnail, currency: 'USD' };
+
         // Only include coursePrice if it's a valid number
         if (coursePrice !== undefined && coursePrice !== null && coursePrice !== "" && coursePrice !== "undefined") {
             const numericPrice = Number(coursePrice);
@@ -145,11 +196,11 @@ export const editCourse = async (req,res) => {
             }
         }
 
-        course = await Course.findByIdAndUpdate(courseId, updateData, {new:true});
+        course = await Course.findByIdAndUpdate(courseId, updateData, { new: true });
 
         return res.status(200).json({
             course,
-            message:"Course updated successfully."
+            message: "Course updated successfully."
         })
 
     } catch (error) {
@@ -183,7 +234,7 @@ export const getCourseById = async (req,res) => {
 
 export const createLecture = async (req,res) => {
     try {
-        const {lectureTitle} = req.body;
+        const {lectureTitle, lectureDescription, supportMaterials = []} = req.body;
         const {courseId} = req.params;
 
         if(!lectureTitle || !courseId){
@@ -193,7 +244,11 @@ export const createLecture = async (req,res) => {
         };
 
         // create lecture
-        const lecture = await Lecture.create({lectureTitle});
+        const lecture = await Lecture.create({
+            lectureTitle,
+            lectureDescription,
+            supportMaterials,
+        });
 
         const course = await Course.findById(courseId);
         if(course){
@@ -235,7 +290,7 @@ export const getCourseLecture = async (req,res) => {
 }
 export const editLecture = async (req,res) => {
     try {
-        const {lectureTitle, videoInfo, isPreviewFree} = req.body;
+        const {lectureTitle, lectureDescription, videoInfo, isPreviewFree, supportMaterials} = req.body;
         
         const {courseId, lectureId} = req.params;
         const lecture = await Lecture.findById(lectureId);
@@ -247,11 +302,15 @@ export const editLecture = async (req,res) => {
 
         // update lecture
         if(lectureTitle) lecture.lectureTitle = lectureTitle;
+        if(lectureDescription !== undefined) lecture.lectureDescription = lectureDescription;
         if(videoInfo?.videoUrl) {
             lecture.videoUrl = videoInfo.videoUrl;
             console.log("🎥 Updated lecture videoUrl:", videoInfo.videoUrl);
         }
         if(videoInfo?.publicId) lecture.publicId = videoInfo.publicId;
+        if(Array.isArray(supportMaterials)) {
+            lecture.supportMaterials = supportMaterials;
+        }
         lecture.isPreviewFree = isPreviewFree;
 
         await lecture.save();
@@ -291,6 +350,15 @@ export const removeLecture = async (req,res) => {
         } else if(lecture.publicId){
             // Fallback to Cloudinary if it's an old video
             await deleteVideoFromS3(lecture.publicId);
+        }
+
+        if (lecture.supportMaterials?.length) {
+            for (const material of lecture.supportMaterials) {
+                const key = material.key || extractS3KeyFromUrl(material.url);
+                if (key) {
+                    await deleteMediaFromS3(key);
+                }
+            }
         }
 
         // Remove the lecture reference from the associated course

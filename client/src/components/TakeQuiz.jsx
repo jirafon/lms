@@ -6,6 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Skeleton } from './ui/skeleton';
 import QuizResults from './QuizResults';
 import { useStartQuizMutation, useSubmitQuizMutation } from '@/features/api/quizApi';
+import { useUpdateQuizProgressMutation } from '@/features/api/courseProgressApi';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +14,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
   const { t } = useTranslation();
   const [startQuiz, { isLoading: startingQuiz }] = useStartQuizMutation();
   const [submitQuiz, { isLoading: submitting }] = useSubmitQuizMutation();
+  const [updateQuizProgress] = useUpdateQuizProgressMutation();
   
   const [quiz, setQuiz] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
@@ -20,6 +22,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
   const [loading, setLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState(null);
+  const [results, setResults] = useState(null);
 
   // Fetch quiz and start attempt
   useEffect(() => {
@@ -67,7 +70,24 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
     setError(null);
     try {
       const result = await submitQuiz({ attemptId, answers }).unwrap();
+      setResults(result.result);
       setShowResults(true);
+      
+      // Update course progress if quiz has lecture and course info
+      if (quiz.lectureId && quiz.courseId && result.result.passed) {
+        try {
+          await updateQuizProgress({
+            courseId: quiz.courseId,
+            lectureId: quiz.lectureId,
+            score: result.result.percentage,
+            passed: result.result.passed
+          });
+        } catch (progressError) {
+          console.log('Error updating progress:', progressError);
+          // Continue even if progress update fails
+        }
+      }
+      
       onQuizCompleted && onQuizCompleted(result.result);
       toast.success(t('quiz.quiz_submitted_successfully'));
     } catch (err) {
@@ -78,6 +98,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
 
   const handleRetry = () => {
     setShowResults(false);
+    setResults(null);
     setAnswers(quiz.questions.map(q => ({
       questionId: q._id,
       selectedOptions: [],
@@ -93,6 +114,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
     return (
       <QuizResults 
         attemptId={attemptId}
+        results={results}
         onRetry={handleRetry}
         onContinue={onContinue}
       />

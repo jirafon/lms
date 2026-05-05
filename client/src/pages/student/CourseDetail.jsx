@@ -19,8 +19,35 @@ import TakeQuiz from "@/components/TakeQuiz";
 import axios from "axios";
 import CreateQuiz from "@/components/CreateQuiz";
 import { toast } from "sonner";
+import { useTranslation } from 'react-i18next';
+
+const renderSupportMaterials = (lecture) => {
+  if (!lecture?.supportMaterials?.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4">
+      <h2 className="text-base font-semibold">Downloadable files</h2>
+      <div className="mt-2 space-y-2">
+        {lecture.supportMaterials.map((material) => (
+          <a
+            key={material.url}
+            href={material.url}
+            target="_blank"
+            rel="noreferrer"
+            className="block rounded border px-3 py-2 text-sm text-blue-600 hover:underline"
+          >
+            {material.name}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const CourseDetail = () => {
+  const { t } = useTranslation();
   const params = useParams();
   const { courseId, lectureId } = params;
   const navigate = useNavigate();
@@ -32,15 +59,21 @@ const CourseDetail = () => {
   useEffect(() => {
     if (data && data.course && data.course.lectures && data.course.lectures.length > 0) {
       const firstLectureId = data.course.lectures[0]._id;
+      const token = localStorage.getItem('token'); // Retrieve token from localStorage or appropriate storage
+
       axios
-        .get(`${import.meta.env.VITE_API_BASE_URL}/quiz/lecture/${firstLectureId}`)
+        .get(`${import.meta.env.VITE_API_BASE_URL}/quiz/lecture/${firstLectureId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         .then((res) => setQuiz(res.data.quiz))
         .catch(() => setQuiz(null));
     }
   }, [data]);
 
-  if (isLoading) return <h1>Loading...</h1>;
-  if (isError) return <h>Failed to load course details</h>;
+  if (isLoading) return <h1>{t('common.loading')}</h1>;
+  if (isError) return <h1>{t('common.error')}</h1>;
 
   const { course, purchased } = data;
   console.log(purchased);
@@ -55,10 +88,8 @@ const CourseDetail = () => {
     <div className="space-y-5">
       <div className="bg-[#2D2F31] text-white">
         <div className="max-w-7xl mx-auto py-8 px-4 md:px-8 flex flex-col gap-2">
-          <h1 className="font-bold text-2xl md:text-3xl">
-            {course?.courseTitle}
-          </h1>
-          <p className="text-base md:text-lg">Course Sub-title</p>
+          <h1>{t('courseDetail.title', { courseTitle: course.title })}</h1>
+          <p>{t('courseDetail.description', { description: course.description })}</p>
           <p>
             Created By{" "}
             <span className="text-[#C0C4FC] underline italic">
@@ -87,11 +118,18 @@ const CourseDetail = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {course.lectures.map((lecture, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-sm">
+                <div key={idx} className="flex items-start gap-3 text-sm">
                   <span>
                     {purchased ? <PlayCircle size={14} /> : <Lock size={14} />}
                   </span>
-                  <p>{lecture.lectureTitle}</p>
+                  <div>
+                    <p>{lecture.lectureTitle}</p>
+                    {lecture.lectureDescription && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {lecture.lectureDescription}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -129,7 +167,13 @@ const CourseDetail = () => {
                   <TakeQuiz quizId={quiz._id} />
                 </div>
               )}
-              <h1>Lecture title</h1>
+              {renderSupportMaterials(course.lectures[0])}
+              <h1>{course.lectures[0]?.lectureTitle || 'Lecture title'}</h1>
+              {course.lectures[0]?.lectureDescription && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {course.lectures[0].lectureDescription}
+                </p>
+              )}
               <Separator className="my-2" />
               <h1 className="text-lg md:text-xl font-semibold">Course Price</h1>
             </CardContent>

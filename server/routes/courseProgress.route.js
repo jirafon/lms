@@ -3,6 +3,8 @@ import isAuthenticated from "../middlewares/isAuthenticated.js";
 import {
   initializeCourseProgress,
   updateLectureProgress,
+  updateQuizProgress,
+  checkLectureAccess,
   getCourseProgress,
   getUserProgress,
   getCourseAnalytics
@@ -15,6 +17,12 @@ router.route("/course/:courseId/initialize").post(isAuthenticated, initializeCou
 
 // Update lecture progress (watch time, completion)
 router.route("/course/:courseId/lecture/:lectureId").put(isAuthenticated, updateLectureProgress);
+
+// Update quiz progress
+router.route("/course/:courseId/lecture/:lectureId/quiz").put(isAuthenticated, updateQuizProgress);
+
+// Check lecture access
+router.route("/course/:courseId/lecture/:lectureId/access").get(isAuthenticated, checkLectureAccess);
 
 // Get progress for a specific course
 router.route("/course/:courseId").get(isAuthenticated, getCourseProgress);

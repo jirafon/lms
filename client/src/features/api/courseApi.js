@@ -55,6 +55,12 @@ export const courseApi = createApi({
       }),
       providesTags: ["Refetch_Creator_Course"],
     }),
+    getCourseStudents: builder.query({
+      query: (courseId) => ({
+        url: `/${courseId}/students`,
+        method: "GET",
+      }),
+    }),
     editCourse: builder.mutation({
       query: ({ formData, courseId }) => ({
         url: `/${courseId}`,
@@ -70,10 +76,10 @@ export const courseApi = createApi({
       }),
     }),
     createLecture: builder.mutation({
-      query: ({ lectureTitle, courseId }) => ({
+      query: ({ lectureTitle, lectureDescription, supportMaterials = [], courseId }) => ({
         url: `/${courseId}/lecture`,
         method: "POST",
-        body: { lectureTitle },
+        body: { lectureTitle, lectureDescription, supportMaterials },
       }),
     }),
     getCourseLecture: builder.query({
@@ -86,14 +92,16 @@ export const courseApi = createApi({
     editLecture: builder.mutation({
       query: ({
         lectureTitle,
+        lectureDescription,
         videoInfo,
+        supportMaterials,
         isPreviewFree,
         courseId,
         lectureId,
       }) => ({
         url: `/${courseId}/lecture/${lectureId}`,
         method: "POST",
-        body: { lectureTitle, videoInfo, isPreviewFree },
+        body: { lectureTitle, lectureDescription, videoInfo, supportMaterials, isPreviewFree },
       }),
     }),
     removeLecture: builder.mutation({
@@ -129,6 +137,7 @@ export const {
   useGetSearchCourseQuery,
   useGetPublishedCourseQuery,
   useGetCreatorCourseQuery,
+  useLazyGetCourseStudentsQuery,
   useEditCourseMutation,
   useGetCourseByIdQuery,
   useCreateLectureMutation,

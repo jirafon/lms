@@ -18,6 +18,10 @@ const courseSchema = new mongoose.Schema({
     coursePrice:{
         type:Number
     },
+    currency: {
+        type: String,
+        default: 'USD'
+    },
     courseThumbnail:{
         type:String
     },

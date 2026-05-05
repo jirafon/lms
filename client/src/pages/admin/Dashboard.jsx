@@ -1,35 +1,49 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useGetPurchasedCoursesQuery } from "@/features/api/purchaseApi";
+import { useGetInstructorMetricsQuery } from "@/features/api/instructorApi";
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-const Dashboard = () => {
+const InstructorDashboard = () => {
+  const { data, isLoading, isError, error } = useGetInstructorMetricsQuery();
 
-  const {data, isSuccess, isError, isLoading} = useGetPurchasedCoursesQuery();
+  if (isLoading) return <h1>Loading...</h1>;
+  if (isError || !data) {
+    console.error("Failed to load instructor metrics", error);
+    if (error?.status === 'PARSING_ERROR') {
+      console.error("Unexpected response format:", error);
+    }
+    return (
+      <div className="text-center">
+        <h1 className="text-red-500">Failed to load instructor metrics</h1>
+        <p className="text-gray-500">{error?.data?.message || "An unexpected error occurred."}</p>
+      </div>
+    );
+  }
 
-  if(isLoading) return <h1>Loading...</h1>
-  if(isError) return <h1 className="text-red-500">Failed to get purchased course</h1>
+  const {
+    totalCourses = 0,
+    totalStudents = 0,
+    totalRevenue = 0,
+    coursePerformance = [],
+  } = data;
 
-  // Safely extract purchasedCourse with fallback to empty array
-  const purchasedCourse = data?.purchasedCourse || [];
-
-  const courseData = purchasedCourse.map((course)=> ({
-    name: course.courseId?.courseTitle || 'Unknown Course',
-    price: course.courseId?.coursePrice || 0
-  }))
-
-  const totalRevenue = purchasedCourse.reduce((acc, element) => acc + (element.amount || 0), 0);
-
-  const totalSales = purchasedCourse.length;
-  
   return (
-    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardHeader>
-          <CardTitle>Total Sales</CardTitle>
+          <CardTitle>Total Courses</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-blue-600">{totalSales}</p>
+          <p className="text-3xl font-bold text-blue-600">{totalCourses}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle>Total Students</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold text-blue-600">{totalStudents}</p>
         </CardContent>
       </Card>
 
@@ -38,38 +52,25 @@ const Dashboard = () => {
           <CardTitle>Total Revenue</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-blue-600">{totalRevenue}</p>
+          <p className="text-3xl font-bold text-blue-600">${totalRevenue}</p>
         </CardContent>
       </Card>
 
-      {/* Course Prices Card */}
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
         <CardHeader>
           <CardTitle className="text-xl font-semibold text-gray-700">
-            Course Prices
+            Course Performance
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={courseData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis
-                dataKey="name"
-                stroke="#6b7280"
-                angle={-30} // Rotated labels for better visibility
-                textAnchor="end"
-                interval={0} // Display all labels
-              />
-              <YAxis stroke="#6b7280" />
-              <Tooltip formatter={(value, name) => [`₹${value}`, name]} />
-              <Line
-                type="monotone"
-                dataKey="price"
-                stroke="#4a90e2" // Changed color to a different shade of blue
-                strokeWidth={3}
-                dot={{ stroke: "#4a90e2", strokeWidth: 2 }} // Same color for the dot
-              />
-            </LineChart>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={coursePerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="courseTitle" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="revenue" fill="#8884d8" />
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -77,4 +78,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default InstructorDashboard;

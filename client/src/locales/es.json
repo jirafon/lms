@@ -335,5 +335,19 @@
     "not_found": "Recurso no encontrado",
     "validation_error": "Error de validación",
     "unknown_error": "Error desconocido"
+  },
+  "courseDetail": {
+    "title": "Curso: {{courseTitle}}",
+    "description": "Descripción: {{description}}",
+    "lectures": "Lecciones",
+    "progress": "Progreso",
+    "quiz": "Cuestionario",
+    "buy": "Comprar Curso",
+    "continue": "Continuar Curso"
+  },
+  "courseCategories": {
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado"
   }
-} 
+}

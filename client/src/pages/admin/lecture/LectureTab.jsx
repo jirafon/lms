@@ -10,11 +10,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useEditLectureMutation, useGetLectureByIdQuery, useRemoveLectureMutation } from "@/features/api/courseApi";
 import axios from "axios";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreVertical, Settings, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 //const MEDIA_API = "http://localhost:3010/api/v1/media";
@@ -24,13 +39,19 @@ const MEDIA_API = import.meta.env.VITE_API_BASE_URL + "/media/";
 
 const LectureTab = () => {
   const [lectureTitle, setLectureTitle] = useState("");
+  const [lectureDescription, setLectureDescription] = useState("");
   const [uploadVideInfo, setUploadVideoInfo] = useState(null);
+  const [supportMaterials, setSupportMaterials] = useState([]);
   const [isFree, setIsFree] = useState(false);
   const [mediaProgress, setMediaProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [btnDisable, setBtnDisable] = useState(true);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const params = useParams();
   const { courseId, lectureId } = params;
+  const navigate = useNavigate();
 
   const {data:lectureData} = useGetLectureByIdQuery(lectureId);
   const lecture = lectureData?.lecture;
@@ -38,8 +59,17 @@ const LectureTab = () => {
   useEffect(()=>{
     if(lecture){
       setLectureTitle(lecture.lectureTitle);
+      setLectureDescription(lecture.lectureDescription || "");
       setIsFree(lecture.isPreviewFree);
-      setUploadVideoInfo(lecture.videoInfo)
+      setUploadVideoInfo(
+        lecture.videoUrl
+          ? {
+              videoUrl: lecture.videoUrl,
+              publicId: lecture.publicId,
+            }
+          : null
+      );
+      setSupportMaterials(lecture.supportMaterials || []);
     }
   },[lecture])
 
@@ -93,21 +123,83 @@ const LectureTab = () => {
     }
   };
 
+  const supportMaterialChangeHandler = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) {
+      return;
+    }
+    setIsUploadingMaterial(true);
+
+    try {
+      const uploadedMaterials = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await axios.post(`${MEDIA_API}/upload-support-material`, formData);
+        if (res.data.success) {
+          uploadedMaterials.push({
+            name: file.name,
+            url: res.data.data.url,
+            key: res.data.data.key,
+          });
+        }
+      }
+
+      if (uploadedMaterials.length > 0) {
+        setSupportMaterials((current) => [...current, ...uploadedMaterials]);
+        toast.success(`${uploadedMaterials.length} file(s) uploaded successfully.`);
+      }
+    } catch (uploadError) {
+      toast.error(uploadError.response?.data?.message || "Material upload failed");
+    } finally {
+      setIsUploadingMaterial(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeSupportMaterial = (materialUrl) => {
+    setSupportMaterials((current) => current.filter((material) => material.url !== materialUrl));
+  };
+
   const editLectureHandler = async () => {
-    console.log({ lectureTitle, uploadVideInfo, isFree, courseId, lectureId });
+    console.log({ lectureTitle, lectureDescription, uploadVideInfo, supportMaterials, isFree, courseId, lectureId });
 
     await edtiLecture({
       lectureTitle,
+      lectureDescription,
       videoInfo:uploadVideInfo,
+      supportMaterials,
       isPreviewFree:isFree,
       courseId,
       lectureId,
     });
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+    setDeleteConfirmText("");
+  };
+
   const removeLectureHandler = async () => {
-    await removeLecture(lectureId);
-  }
+    const expectedText = lecture?.lectureTitle || "";
+    
+    if (deleteConfirmText !== expectedText) {
+      toast.error("El texto no coincide con el nombre de la lectura");
+      return;
+    }
+
+    try {
+      await removeLecture(lectureId);
+      toast.success("Lectura eliminada exitosamente");
+      navigate(`/admin/course/${courseId}/lecture`);
+    } catch (error) {
+      toast.error("Error al eliminar la lectura");
+    } finally {
+      setShowDeleteDialog(false);
+    }
+  };
 
   useEffect(() => {
     if (isSuccess) {
@@ -134,14 +226,28 @@ const LectureTab = () => {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button disbaled={removeLoading} variant="destructive" onClick={removeLectureHandler}>
-            {
-              removeLoading ? <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-              Please wait
-              </> : "Remove Lecture"
-            }
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración avanzada
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleDeleteClick} 
+                className="cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+                disabled={removeLoading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {removeLoading ? 'Eliminando...' : 'Eliminar lectura'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
@@ -152,6 +258,15 @@ const LectureTab = () => {
             onChange={(e) => setLectureTitle(e.target.value)}
             type="text"
             placeholder="Ex. Introduction to Javascript"
+          />
+        </div>
+        <div className="mt-5">
+          <Label>Description</Label>
+          <textarea
+            value={lectureDescription}
+            onChange={(e) => setLectureDescription(e.target.value)}
+            placeholder="Short description for this lecture"
+            className="mt-2 flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         <div className="my-5">
@@ -166,6 +281,30 @@ const LectureTab = () => {
             className="w-fit"
           />
         </div>
+        <div className="my-5">
+          <Label>Downloadable files</Label>
+          <Input
+            type="file"
+            multiple
+            onChange={supportMaterialChangeHandler}
+            className="w-fit"
+          />
+          {isUploadingMaterial && <p className="mt-2 text-sm text-muted-foreground">Uploading file...</p>}
+          {supportMaterials.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {supportMaterials.map((material) => (
+                <div key={material.url} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                  <a href={material.url} target="_blank" rel="noreferrer" className="truncate text-blue-600 hover:underline">
+                    {material.name}
+                  </a>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeSupportMaterial(material.url)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex items-center space-x-2 my-5">
           <Switch checked={isFree} onCheckedChange={setIsFree} id="airplane-mode" />
           <Label htmlFor="airplane-mode">Is this video FREE</Label>
@@ -179,7 +318,7 @@ const LectureTab = () => {
         )}
 
         <div className="mt-4">
-          <Button disabled={isLoading} onClick={editLectureHandler}>
+          <Button disabled={isLoading || isUploadingMaterial} onClick={editLectureHandler}>
               {
                 isLoading ? <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
@@ -190,6 +329,64 @@ const LectureTab = () => {
           </Button>
         </div>
       </CardContent>
+
+      {/* Dialog de confirmación para eliminar lectura */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">⚠️ Eliminar Lectura Permanentemente</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Esta acción <strong>NO SE PUEDE DESHACER</strong>.</p>
+              <p>Se eliminará:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 ml-4">
+                <li>La lectura completa</li>
+                <li>El video asociado</li>
+                <li>El quiz de esta lectura</li>
+                <li>Todo el progreso de estudiantes en esta lectura</li>
+                <li>Todos los intentos de quiz</li>
+              </ul>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="confirmText" className="text-sm font-medium">
+                Para confirmar, escribe el nombre exacto de la lectura:
+              </Label>
+              <p className="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">
+                {lecture?.lectureTitle}
+              </p>
+              <Input
+                id="confirmText"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Escribe el nombre de la lectura aquí"
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={removeLectureHandler}
+              disabled={deleteConfirmText !== lecture?.lectureTitle || removeLoading}
+            >
+              {removeLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                'Eliminar Permanentemente'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

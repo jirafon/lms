@@ -427,12 +427,12 @@ export const submitQuiz = async (req, res) => {
       }
     );
 
-    // Update lecture progress
+    // Update lecture progress - only mark as completed if passed
     await CourseProgress.findOneAndUpdate(
       { userId, courseId: attempt.courseId },
       {
         $set: {
-          "lectures.$[lecture].quizCompleted": true,
+          "lectures.$[lecture].quizCompleted": passed, // Only true if quiz was passed
           "lectures.$[lecture].quizScore": percentage,
           "lectures.$[lecture].quizAttempts": attempt.attemptNumber,
           "lectures.$[lecture].bestQuizScore": Math.max(percentage, attempt.bestQuizScore || 0)
@@ -552,6 +552,64 @@ export const getStudentQuizHistory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching quiz history"
+    });
+  }
+};
+
+// Get quiz by lecture ID
+export const getQuizByLecture = async (req, res) => {
+  try {
+    const { lectureId } = req.params;
+    const userId = req.id;
+
+    const quiz = await Quiz.findOne({ 
+      lectureId, 
+      isActive: true 
+    }).populate('lectureId', 'lectureTitle');
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found for this lecture"
+      });
+    }
+
+    // Check if user is instructor
+    const isInstructor = await Course.findOne({
+      _id: quiz.courseId,
+      creator: userId
+    });
+
+    if (isInstructor) {
+      // Return full quiz data for instructors
+      return res.status(200).json({
+        success: true,
+        quiz
+      });
+    } else {
+      // Return quiz without correct answers for students
+      const studentQuiz = {
+        ...quiz.toObject(),
+        questions: quiz.questions.map(q => ({
+          ...q,
+          options: q.options.map(opt => ({
+            text: opt.text,
+            // Don't include isCorrect for students
+          })),
+          correctAnswer: undefined // Remove correct answer
+        }))
+      };
+
+      return res.status(200).json({
+        success: true,
+        quiz: studentQuiz
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching quiz for lecture"
     });
   }
 }; 

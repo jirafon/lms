@@ -7,22 +7,16 @@ import { Provider } from 'react-redux';
 import { appStore } from './app/store.js';
 import { ThemeProvider } from './components/ThemeProvider.jsx';
 import { Toaster } from './components/ui/sonner.jsx';
-import { useLoadUserQuery } from "./features/api/authApi";
-import LoadingSpinner from "./components/LoadingSpinner";
-
-const Custom = ({ children }) => {
-  const { isLoading } = useLoadUserQuery();
-  return <>{isLoading ? <LoadingSpinner/> : <>{children}</>}</>;
-};
+import AppBootstrap from './components/AppBootstrap.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={appStore}>
       <ThemeProvider>
-        <Custom>
+        <AppBootstrap>
           <App />
           <Toaster />
-        </Custom>
+        </AppBootstrap>
       </ThemeProvider>
     </Provider>
   </React.StrictMode>,

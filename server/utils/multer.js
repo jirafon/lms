@@ -43,18 +43,17 @@ const fileFilter = (req, file, cb) => {
     return cb(null, true);
   }
   
-  // Allow specific video formats
-  const allowedVideoTypes = [
-    'video/mp4',
-    'video/avi',
-    'video/mov',
-    'video/wmv',
-    'video/flv',
-    'video/webm'
+  // Allow documents
+  const allowedDocumentTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
   ];
   
-  if (allowedVideoTypes.includes(file.mimetype)) {
-    console.log(`✅ Multer: Video file accepted (${file.mimetype})`);
+  if (allowedDocumentTypes.includes(file.mimetype)) {
+    console.log(`✅ Multer: Document file accepted (${file.mimetype})`);
     return cb(null, true);
   }
 

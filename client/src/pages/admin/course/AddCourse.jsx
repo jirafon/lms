@@ -87,6 +87,9 @@ const AddCourse = () => {
                 <SelectItem value="Docker">Docker</SelectItem>
                 <SelectItem value="MongoDB">MongoDB</SelectItem>
                 <SelectItem value="HTML">HTML</SelectItem>
+                <SelectItem value="MPD">MPD</SelectItem>
+                <SelectItem value="Data Privacy">Privacidad de Datos</SelectItem>
+                <SelectItem value="Integrity">Integridad</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

@@ -7,6 +7,7 @@ import {
   deleteQuiz,
   getQuizById,
   getQuizzesByCourse,
+  getQuizByLecture,
   
   // Student functions
   startQuiz,
@@ -47,5 +48,8 @@ router.route("/attempt/:attemptId/results").get(isAuthenticated, getQuizResults)
 
 // Get student's quiz history for a course
 router.route("/course/:courseId/history").get(isAuthenticated, getStudentQuizHistory);
+
+// Get quiz by lecture ID
+router.route("/lecture/:lectureId").get(isAuthenticated, getQuizByLecture);
 
 export default router; 

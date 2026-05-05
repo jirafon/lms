@@ -77,6 +77,11 @@ const Navbar = () => {
                 <DropdownMenuLabel>{t('navigation.my_account')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
+                  {user?.role === "instructor" && (
+                    <DropdownMenuItem>
+                      <Link to="/admin/course">{t('admin.manage_courses')}</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem>
                     <Link to="my-learning">{t('navigation.my_learning')}</Link>
                   </DropdownMenuItem>
@@ -87,16 +92,6 @@ const Navbar = () => {
                     {t('navigation.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
-                {user?.role === "instructor" && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem>
-                        <Link to="/admin/dashboard">{t('admin.admin_dashboard')}</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -137,12 +132,12 @@ const Navbar = () => {
               <nav className="flex flex-col space-y-4">
                 {user ? (
                   <>
+                    {user?.role === "instructor" && (
+                      <Link to="/admin/course">{t('admin.manage_courses')}</Link>
+                    )}
                     <Link to="/my-learning">{t('navigation.my_learning')}</Link>
                     <Link to="/profile">{t('navigation.profile')}</Link>
                     <button onClick={logoutHandler}>{t('navigation.logout')}</button>
-                    {user?.role === "instructor" && (
-                      <Link to="/admin/dashboard">{t('admin.admin_dashboard')}</Link>
-                    )}
                   </>
                 ) : (
                   <>

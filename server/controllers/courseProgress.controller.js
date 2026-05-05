@@ -71,11 +71,171 @@ export const initializeCourseProgress = async (req, res) => {
   }
 };
 
+export const updateQuizProgress = async (req, res) => {
+  try {
+    const { courseId, lectureId } = req.params;
+    const { quizId, score, passed } = req.body;
+    const userId = req.id;
+
+    const progress = await CourseProgress.findOne({
+      userId,
+      courseId
+    });
+
+    if (!progress) {
+      return res.status(404).json({
+        success: false,
+        message: "Course progress not found"
+      });
+    }
+
+    // Find and update the specific lecture's quiz progress
+    const lectureIndex = progress.lectures.findIndex(
+      lecture => lecture.lectureId.toString() === lectureId
+    );
+
+    if (lectureIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Lecture not found in course progress"
+      });
+    }
+
+    // Update quiz progress
+    progress.lectures[lectureIndex].quizCompleted = passed;
+    progress.lectures[lectureIndex].quizScore = score;
+    progress.lectures[lectureIndex].quizAttempts += 1;
+    
+    // Update best score if this is better
+    if (score > progress.lectures[lectureIndex].bestQuizScore) {
+      progress.lectures[lectureIndex].bestQuizScore = score;
+    }
+
+    // Recalculate overall quiz progress
+    const completedQuizzes = progress.lectures.filter(lecture => lecture.quizCompleted).length;
+    progress.completedQuizzes = completedQuizzes;
+    
+    // Update average quiz score
+    const quizScores = progress.lectures
+      .filter(lecture => lecture.quizCompleted && lecture.quizScore > 0)
+      .map(lecture => lecture.quizScore);
+    
+    if (quizScores.length > 0) {
+      progress.averageQuizScore = Math.round(
+        quizScores.reduce((sum, score) => sum + score, 0) / quizScores.length
+      );
+    }
+
+    progress.lastAccessedAt = new Date();
+    await progress.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Quiz progress updated",
+      progress: {
+        lectureProgress: progress.lectures[lectureIndex],
+        completedQuizzes: progress.completedQuizzes,
+        averageQuizScore: progress.averageQuizScore
+      }
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating quiz progress"
+    });
+  }
+};
+
+export const checkLectureAccess = async (req, res) => {
+  try {
+    const { courseId, lectureId } = req.params;
+    const userId = req.id;
+
+    const progress = await CourseProgress.findOne({
+      userId,
+      courseId
+    }).populate({
+      path: 'lectures.lectureId',
+      select: 'lectureTitle'
+    });
+
+    if (!progress) {
+      return res.status(404).json({
+        success: false,
+        message: "Course progress not found"
+      });
+    }
+
+    // Get all lectures for this course in order
+    const course = await Course.findById(courseId).populate('lectures');
+    const sortedLectures = course.lectures.sort((a, b) => a.createdAt - b.createdAt);
+    
+    const targetLectureIndex = sortedLectures.findIndex(
+      lecture => lecture._id.toString() === lectureId
+    );
+
+    if (targetLectureIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Lecture not found"
+      });
+    }
+
+    // First lecture is always accessible
+    if (targetLectureIndex === 0) {
+      return res.status(200).json({
+        success: true,
+        hasAccess: true,
+        message: "Access granted - first lecture"
+      });
+    }
+
+    // Check if previous lecture's quiz was completed and passed
+    const previousLecture = sortedLectures[targetLectureIndex - 1];
+    const previousLectureProgress = progress.lectures.find(
+      lecture => lecture.lectureId.toString() === previousLecture._id.toString()
+    );
+
+    if (!previousLectureProgress || !previousLectureProgress.quizCompleted) {
+      return res.status(200).json({
+        success: true,
+        hasAccess: false,
+        message: "Debes completar y aprobar el quiz de la lectura anterior",
+        requiredLecture: previousLecture.lectureTitle
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      hasAccess: true,
+      message: "Access granted"
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error checking lecture access"
+    });
+  }
+};
+
+// Update lecture progress (watch time, completion)
 export const updateLectureProgress = async (req, res) => {
   try {
     const { courseId, lectureId } = req.params;
     const { watchTime, completed } = req.body;
     const userId = req.id;
+
+    // First check if user has access to this lecture
+    const accessCheck = await checkLectureAccessInternal(userId, courseId, lectureId);
+    if (!accessCheck.hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: accessCheck.message,
+        requiredLecture: accessCheck.requiredLecture
+      });
+    }
 
     const progress = await CourseProgress.findOne({
       userId,
@@ -142,6 +302,56 @@ export const updateLectureProgress = async (req, res) => {
       success: false,
       message: "Error updating lecture progress"
     });
+  }
+};
+
+// Internal function to check lecture access without HTTP response
+const checkLectureAccessInternal = async (userId, courseId, lectureId) => {
+  try {
+    const progress = await CourseProgress.findOne({
+      userId,
+      courseId
+    });
+
+    if (!progress) {
+      return { hasAccess: false, message: "Course progress not found" };
+    }
+
+    // Get all lectures for this course in order
+    const course = await Course.findById(courseId).populate('lectures');
+    const sortedLectures = course.lectures.sort((a, b) => a.createdAt - b.createdAt);
+    
+    const targetLectureIndex = sortedLectures.findIndex(
+      lecture => lecture._id.toString() === lectureId
+    );
+
+    if (targetLectureIndex === -1) {
+      return { hasAccess: false, message: "Lecture not found" };
+    }
+
+    // First lecture is always accessible
+    if (targetLectureIndex === 0) {
+      return { hasAccess: true, message: "Access granted - first lecture" };
+    }
+
+    // Check if previous lecture's quiz was completed and passed
+    const previousLecture = sortedLectures[targetLectureIndex - 1];
+    const previousLectureProgress = progress.lectures.find(
+      lecture => lecture.lectureId.toString() === previousLecture._id.toString()
+    );
+
+    if (!previousLectureProgress || !previousLectureProgress.quizCompleted) {
+      return {
+        hasAccess: false,
+        message: "Debes completar y aprobar el quiz de la lectura anterior",
+        requiredLecture: previousLecture.lectureTitle
+      };
+    }
+
+    return { hasAccess: true, message: "Access granted" };
+  } catch (error) {
+    console.log(error);
+    return { hasAccess: false, message: "Error checking access" };
   }
 };
 
