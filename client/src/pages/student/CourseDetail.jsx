@@ -11,13 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
-import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle } from "lucide-react";
+import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Sparkles, Users, BookOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import ReactPlayer from "react-player";
 import { useNavigate, useParams } from "react-router-dom";
 import TakeQuiz from "@/components/TakeQuiz";
 import axios from "axios";
-import CreateQuiz from "@/components/CreateQuiz";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 
@@ -44,6 +43,18 @@ const renderSupportMaterials = (lecture) => {
       </div>
     </div>
   );
+};
+
+const formatDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const CourseDetail = () => {
@@ -76,6 +87,9 @@ const CourseDetail = () => {
   if (isError) return <h1>{t('common.error')}</h1>;
 
   const { course, purchased } = data;
+  const firstLecture = course?.lectures?.[0];
+  const courseTitle = course?.courseTitle || course?.title || "Curso";
+  const courseSummary = course?.subTitle || course?.description || "";
   console.log(purchased);
 
   const handleContinueCourse = () => {
@@ -85,118 +99,178 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="bg-[#2D2F31] text-white">
-        <div className="max-w-7xl mx-auto py-8 px-4 md:px-8 flex flex-col gap-2">
-          <h1>{t('courseDetail.title', { courseTitle: course.title })}</h1>
-          <p>{t('courseDetail.description', { description: course.description })}</p>
-          <p>
-            Created By{" "}
-            <span className="text-[#C0C4FC] underline italic">
-              {course?.creator.name}
-            </span>
-          </p>
-          <div className="flex items-center gap-2 text-sm">
-            <BadgeInfo size={16} />
-            <p>Last updated {course?.createdAt.split("T")[0]}</p>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(249,115,22,0.10),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] dark:bg-[linear-gradient(180deg,_#111827_0%,_#0f172a_100%)]">
+      <div className="border-b border-black/5 bg-slate-950 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-10 md:px-8 md:py-14">
+          <div className="max-w-4xl space-y-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-slate-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              {course?.category || "Curso"}
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="font-serif text-3xl leading-tight text-white md:text-5xl">
+                {courseTitle}
+              </h1>
+              {courseSummary && (
+                <p className="max-w-3xl text-sm leading-6 text-slate-300 md:text-base">
+                  {courseSummary}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
+                <BookOpen className="h-4 w-4 text-sky-300" />
+                {course?.lectures?.length || 0} capitulos
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
+                <Users className="h-4 w-4 text-orange-300" />
+                {course?.enrolledStudents?.length || 0} inscritos
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
+                <BadgeInfo className="h-4 w-4 text-emerald-300" />
+                Actualizado {formatDate(course?.createdAt)}
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-400">
+              Creado por <span className="font-medium text-white">{course?.creator?.name || "Equipo"}</span>
+            </p>
           </div>
-          <p>Students enrolled: {course?.enrolledStudents.length}</p>
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto my-5 px-4 md:px-8 flex flex-col lg:flex-row justify-between gap-10">
-        <div className="w-full lg:w-1/2 space-y-5">
-          <h1 className="font-bold text-xl md:text-2xl">Description</h1>
-          <p
-            className="text-sm"
-            dangerouslySetInnerHTML={{ __html: course.description }}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Content</CardTitle>
-              <CardDescription>{course.lectures.length} lectures</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {course.lectures.map((lecture, idx) => (
-                <div key={idx} className="flex items-start gap-3 text-sm">
-                  <span>
-                    {purchased ? <PlayCircle size={14} /> : <Lock size={14} />}
-                  </span>
+      <div className="max-w-7xl mx-auto px-4 py-8 md:px-8 md:py-10">
+        <div className="flex flex-col-reverse gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="w-full lg:w-[58%] space-y-6">
+            <Card className="overflow-hidden border-white/50 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+              <CardContent className="p-6 md:p-8">
+                <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  <span className="h-px w-8 bg-slate-300" />
+                  Resumen del curso
+                </div>
+                <div
+                  className="prose prose-sm max-w-none text-slate-700 prose-p:leading-7"
+                  dangerouslySetInnerHTML={{ __html: course.description || "" }}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/50 bg-white/85 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-xl text-slate-900">Contenido del curso</CardTitle>
+                <CardDescription>{course.lectures.length} capitulos disponibles</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {course.lectures.map((lecture, idx) => (
+                  <div key={idx} className="flex items-start gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 text-sm transition-colors hover:bg-white">
+                    <span className="mt-0.5 rounded-full bg-white p-2 text-slate-700 shadow-sm">
+                      {purchased ? <PlayCircle size={14} /> : <Lock size={14} />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900">{lecture.lectureTitle}</p>
+                      {lecture.lectureDescription && (
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          {lecture.lectureDescription}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      {idx + 1}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="w-full lg:sticky lg:top-6 lg:w-[34%]">
+            <Card className="overflow-hidden border-slate-200/80 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.12)] backdrop-blur">
+              <CardContent className="flex flex-col p-4 md:p-5">
+                <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                  <div className="aspect-video w-full">
+                    <ReactPlayer
+                      width="100%"
+                      height="100%"
+                      url={firstLecture?.videoUrl}
+                      controls={true}
+                      onError={(e) => {
+                        console.error("Video error:", e);
+                        toast.error("Video no disponible - Configuración de S3 requerida");
+                      }}
+                      fallback={
+                        <div className="flex h-full w-full flex-col items-center justify-center rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
+                          <AlertTriangle className="mb-4 h-12 w-12 text-yellow-500" />
+                          <h3 className="mb-2 text-lg font-semibold">Video no disponible</h3>
+                          <p className="text-center text-sm text-gray-600">
+                            Configuración de S3 requerida en Render
+                          </p>
+                        </div>
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                   <div>
-                    <p>{lecture.lectureTitle}</p>
-                    {lecture.lectureDescription && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {lecture.lectureDescription}
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      Primer capitulo
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                      {firstLecture?.lectureTitle || "Lecture title"}
+                    </h2>
+                    {firstLecture?.lectureDescription && (
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {firstLecture.lectureDescription}
                       </p>
                     )}
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="w-full lg:w-1/3">
-          <Card>
-            <CardContent className="p-4 flex flex-col">
-              <div className="w-full aspect-video mb-4">
-                <ReactPlayer
-                  width="100%"
-                  height={"100%"}
-                  url={course.lectures[0].videoUrl}
-                  controls={true}
-                  onError={(e) => {
-                    console.error("Video error:", e);
-                    toast.error("Video no disponible - Configuración de S3 requerida");
-                  }}
-                  fallback={
-                    <div className="w-full h-full bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-6">
-                      <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Video no disponible</h3>
-                      <p className="text-sm text-gray-600 text-center">
-                        Configuración de S3 requerida en Render
-                      </p>
+
+                  <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
+                      <p className="mt-1 text-3xl font-semibold">${course?.coursePrice ?? 0}</p>
                     </div>
-                  }
-                />
-              </div>
-              {/* Quiz Section for the first lecture */}
-              {quiz && (
-                <div className="my-6">
-                  <h3 className="text-lg font-semibold mb-2">Quiz for this Lecture</h3>
-                  <TakeQuiz quizId={quiz._id} />
+                    <div className="text-right text-xs text-slate-400">
+                      <p>{course?.courseLevel || "Beginner"}</p>
+                      <p className="mt-1">Acceso inmediato</p>
+                    </div>
+                  </div>
                 </div>
-              )}
-              {renderSupportMaterials(course.lectures[0])}
-              <h1>{course.lectures[0]?.lectureTitle || 'Lecture title'}</h1>
-              {course.lectures[0]?.lectureDescription && (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {course.lectures[0].lectureDescription}
-                </p>
-              )}
-              <Separator className="my-2" />
-              <h1 className="text-lg md:text-xl font-semibold">Course Price</h1>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2 p-4">
-              {purchased ? (
-                <>
-                  <Button onClick={handleContinueCourse} className="w-full">
-                    Continue Course
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowProgress(!showProgress)}
-                    className="w-full flex items-center gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    {showProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
-                  </Button>
-                </>
-              ) : (
-                <BuyCourseButton courseId={courseId} />
-              )}
-            </CardFooter>
-          </Card>
+
+                {quiz && (
+                  <div className="my-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <h3 className="mb-2 text-lg font-semibold text-slate-900">Quiz del capitulo</h3>
+                    <TakeQuiz quizId={quiz._id} />
+                  </div>
+                )}
+
+                {renderSupportMaterials(firstLecture)}
+                <Separator className="my-4" />
+              </CardContent>
+
+              <CardFooter className="flex flex-col gap-2 p-4">
+                {purchased ? (
+                  <>
+                    <Button onClick={handleContinueCourse} className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800">
+                      Continuar curso
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowProgress(!showProgress)}
+                      className="h-11 w-full items-center gap-2 border-slate-300 bg-white"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      {showProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
+                    </Button>
+                  </>
+                ) : (
+                  <BuyCourseButton courseId={courseId} />
+                )}
+              </CardFooter>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -206,8 +280,6 @@ const CourseDetail = () => {
           <CourseProgress courseId={courseId} />
         </div>
       )}
-
-      <CreateQuiz courseId={courseId} lectureId={lectureId} />
     </div>
   );
 };
