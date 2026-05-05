@@ -444,6 +444,16 @@ async function createOrUpdateMpdCourse() {
     await connectDB();
     console.log('✅ Conectado a MongoDB');
 
+    const defaultCreatorCourse = await Course.findOne({
+      creator: { $exists: true, $ne: null }
+    }).select('creator');
+
+    const creatorId = process.env.SEED_COURSE_CREATOR_ID || defaultCreatorCourse?.creator;
+
+    if (!creatorId) {
+      throw new Error('No se pudo determinar un creator para el curso seed');
+    }
+
     let course = await Course.findOne({
       courseTitle: { $regex: new RegExp(`^${courseTitle}$`, 'i') }
     }).populate('lectures');
@@ -456,6 +466,7 @@ async function createOrUpdateMpdCourse() {
         description: 'Curso para colaboradores sobre modelo de prevencion de delitos, riesgos, controles y reporte de irregularidades.',
         courseLevel: 'Beginner',
         coursePrice: 0,
+        creator: creatorId,
         isPublished: true,
         lectures: []
       });
@@ -467,6 +478,7 @@ async function createOrUpdateMpdCourse() {
       course.description = 'Curso para colaboradores sobre modelo de prevencion de delitos, riesgos, controles y reporte de irregularidades.';
       course.courseLevel = 'Beginner';
       course.coursePrice = 0;
+      course.creator = course.creator || creatorId;
       course.isPublished = true;
       console.log(`✅ Curso encontrado: ${course.courseTitle} (${course._id})`);
     }

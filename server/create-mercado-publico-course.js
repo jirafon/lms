@@ -400,6 +400,16 @@ async function createOrUpdateMercadoPublicoCourse() {
     await connectDB();
     console.log('✅ Conectado a MongoDB');
 
+    const defaultCreatorCourse = await Course.findOne({
+      creator: { $exists: true, $ne: null }
+    }).select('creator');
+
+    const creatorId = process.env.SEED_COURSE_CREATOR_ID || defaultCreatorCourse?.creator;
+
+    if (!creatorId) {
+      throw new Error('No se pudo determinar un creator para el curso seed');
+    }
+
     let course = await Course.findOne({
       courseTitle: { $regex: new RegExp(`^${courseTitle}$`, 'i') }
     }).populate('lectures');
@@ -412,6 +422,7 @@ async function createOrUpdateMercadoPublicoCourse() {
         description: 'Curso para colaboradores sobre integridad, transparencia y prevención de riesgos en procesos de Mercado Público.',
         courseLevel: 'Beginner',
         coursePrice: 0,
+        creator: creatorId,
         isPublished: true,
         lectures: []
       });
@@ -423,6 +434,7 @@ async function createOrUpdateMercadoPublicoCourse() {
       course.description = 'Curso para colaboradores sobre integridad, transparencia y prevención de riesgos en procesos de Mercado Público.';
       course.courseLevel = 'Beginner';
       course.coursePrice = 0;
+      course.creator = course.creator || creatorId;
       course.isPublished = true;
       console.log(`✅ Curso encontrado: ${course.courseTitle} (${course._id})`);
     }
