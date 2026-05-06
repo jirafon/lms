@@ -1,59 +1,36 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import React, { useState, useEffect } from "react";
+import { Progress } from "@/components/ui/progress";
+import { BookCheck, Clock3 } from "lucide-react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-const Course = ({course}) => {
+const formatDate = (value) => {
+  if (!value) {
+    return "Sin actividad reciente";
+  }
+
+  return new Date(value).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const Course = ({course, progressSummary}) => {
   const [imageError, setImageError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
-  // Debug logging
-  console.log("🖼️ Course component data:", {
-    courseTitle: course.courseTitle,
-    courseThumbnail: course.courseThumbnail,
-    creatorPhotoUrl: course.creator?.photoUrl,
-    creatorName: course.creator?.name
-  });
-
-  // Test image accessibility
-  useEffect(() => {
-    if (course.courseThumbnail) {
-      console.log("🖼️ Testing course thumbnail:", course.courseThumbnail);
-      const testImg = new Image();
-      testImg.onload = () => {
-        console.log("✅ Course thumbnail loads successfully:", course.courseThumbnail);
-      };
-      testImg.onerror = () => {
-        console.log("❌ Course thumbnail failed to load:", course.courseThumbnail);
-        setImageError(true);
-      };
-      testImg.src = course.courseThumbnail;
-    }
-
-    if (course.creator?.photoUrl) {
-      console.log("👤 Testing creator avatar:", course.creator.photoUrl);
-      const testAvatar = new Image();
-      testAvatar.onload = () => {
-        console.log("✅ Creator avatar loads successfully:", course.creator.photoUrl);
-      };
-      testAvatar.onerror = () => {
-        console.log("❌ Creator avatar failed to load:", course.creator.photoUrl);
-        setAvatarError(true);
-      };
-      testAvatar.src = course.creator.photoUrl;
-    }
-  }, [course.courseThumbnail, course.creator?.photoUrl]);
-
   const handleImageError = () => {
-    console.log("❌ Course thumbnail failed to load:", course.courseThumbnail);
     setImageError(true);
   };
 
   const handleAvatarError = () => {
-    console.log("❌ Creator avatar failed to load:", course.creator?.photoUrl);
     setAvatarError(true);
   };
+
+  const courseProgress = progressSummary?.progress || 0;
 
   return (
     <Link to={`/course-detail/${course._id}`}>
@@ -87,8 +64,27 @@ const Course = ({course}) => {
           </Badge>
         </div>
         <div className="text-lg font-bold">
-            <span>${course.coursePrice}</span>
+          <span>US${course.coursePrice} por usuario</span>
         </div>
+        {progressSummary && (
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>Tu avance</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{courseProgress}%</span>
+            </div>
+            <Progress value={courseProgress} className="h-2" />
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="flex items-center gap-1">
+                <BookCheck className="h-3.5 w-3.5" />
+                {progressSummary.completedQuizzes}/{progressSummary.totalQuizzes} quizzes
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock3 className="h-3.5 w-3.5" />
+                {formatDate(progressSummary.lastAccessedAt)}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
     </Link>

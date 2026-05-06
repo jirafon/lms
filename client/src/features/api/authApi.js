@@ -1,6 +1,6 @@
-import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
+import {createApi} from "@reduxjs/toolkit/query/react";
 import { userLoggedIn, userLoggedOut } from "../authSlice";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 // const USER_API = "http://localhost:3010/api/v1/user/"
 
@@ -10,11 +10,7 @@ const USER_API = import.meta.env.VITE_API_BASE_URL
 
 export const authApi = createApi({
     reducerPath:"authApi",
-    baseQuery:fetchBaseQuery({
-        baseUrl:USER_API,
-        credentials:'include',
-        prepareHeaders: prepareAuthHeaders,
-    }),
+    baseQuery:createAuthBaseQuery(USER_API),
     endpoints: (builder) => ({
         registerUser: builder.mutation({
             query: (inputData) => ({
@@ -36,10 +32,23 @@ export const authApi = createApi({
                         localStorage.setItem("token", result.data.token);
                     }
                     dispatch(userLoggedIn({user:result.data.user}));
-                } catch (error) {
-                    console.log(error);
+                } catch {
                 }
             }
+        }),
+        forgotPassword: builder.mutation({
+            query: (inputData) => ({
+                url:"forgot-password",
+                method:"POST",
+                body:inputData
+            })
+        }),
+        resetPassword: builder.mutation({
+            query: ({ token, ...inputData }) => ({
+                url:`reset-password/${token}`,
+                method:"POST",
+                body:inputData
+            })
         }),
         logoutUser: builder.mutation({
             query: () => ({
@@ -47,11 +56,11 @@ export const authApi = createApi({
                 method:"GET"
             }),
             async onQueryStarted(_, {queryFulfilled, dispatch}) {
-                try { 
+                try {
+                    await queryFulfilled;
                     localStorage.removeItem("token");
                     dispatch(userLoggedOut());
-                } catch (error) {
-                    console.log(error);
+                } catch {
                 }
             }
         }),
@@ -65,7 +74,7 @@ export const authApi = createApi({
                     const result = await queryFulfilled;
                     dispatch(userLoggedIn({user:result.data.user}));
                 } catch (error) {
-                    console.log(error);
+                    dispatch(userLoggedOut());
                 }
             }
         }),
@@ -82,7 +91,9 @@ export const authApi = createApi({
 export const {
     useRegisterUserMutation,
     useLoginUserMutation,
+    useForgotPasswordMutation,
     useLogoutUserMutation,
     useLoadUserQuery,
+    useResetPasswordMutation,
     useUpdateUserMutation
 } = authApi;

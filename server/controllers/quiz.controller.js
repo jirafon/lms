@@ -3,29 +3,56 @@ import { QuizAttempt } from "../models/quizAttempt.model.js";
 import { CourseProgress } from "../models/courseProgress.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { Course } from "../models/course.model.js";
+import { logger } from "../utils/logger.js";
+import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
+import { isValidObjectId, validateQuizPayload } from "../utils/validators.js";
 
 // ===== INSTRUCTOR FUNCTIONS =====
 
 export const createQuiz = async (req, res) => {
-  console.log("createQuiz llamado");
   try {
     const { lectureId, title, description, questions, timeLimit, passingScore, maxAttempts } = req.body;
     const courseId = req.params.courseId;
 
-    // Validate required fields
-    if (!lectureId || !title || !questions || questions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Lecture ID, title, and questions are required"
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
+
+    const validationErrors = validateQuizPayload({ lectureId, title, description, questions, timeLimit, passingScore, maxAttempts });
+    if (validationErrors.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz payload",
+        errors: validationErrors,
+      });
+    }
+
+    const course = await Course.findOne({ _id: courseId, creator: req.id, lectures: lectureId }).select("_id");
+    if (!course) {
+      return sendError(res, {
+        status: 404,
+        message: "Course or lecture not found for this instructor"
       });
     }
 
     // Check if quiz already exists for this lecture
     const existingQuiz = await Quiz.findOne({ lectureId });
     if (existingQuiz) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, {
+        status: 400,
         message: "Quiz already exists for this lecture"
+      });
+    }
+
+    const lecture = await Lecture.findById(lectureId).select("_id");
+    if (!lecture) {
+      return sendError(res, {
+        status: 404,
+        message: "Lecture not found"
       });
     }
 
@@ -53,16 +80,15 @@ export const createQuiz = async (req, res) => {
       { $inc: { totalQuizzes: 1 } }
     );
 
-    console.log("Quiz creado, enviando respuesta");
-    return res.status(201).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 201,
       message: "Quiz created successfully",
       quiz
     });
   } catch (error) {
-    console.log("Error en createQuiz:", error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error creating quiz", { error: error.message, courseId: req.params.courseId });
+    return sendError(res, {
+      status: 500,
       message: "Error creating quiz"
     });
   }
@@ -73,11 +99,46 @@ export const updateQuiz = async (req, res) => {
     const { quizId } = req.params;
     const updateData = req.body;
 
-    const quiz = await Quiz.findById(quizId);
+    if (!isValidObjectId(quizId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz id",
+        errors: ["quizId must be a valid id"],
+      });
+    }
+
+    const validationErrors = validateQuizPayload({
+      ...updateData,
+      lectureId: updateData.lectureId || "skip",
+    }, { requireLectureId: false });
+    if (validationErrors.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz payload",
+        errors: validationErrors,
+      });
+    }
+
+    if (updateData.isActive !== undefined && typeof updateData.isActive !== "boolean") {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz payload",
+        errors: ["isActive must be a boolean"],
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId).populate("courseId", "creator");
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found"
+      });
+    }
+
+    if (!quiz.courseId || String(quiz.courseId.creator) !== String(req.id)) {
+      return sendError(res, {
+        status: 403,
+        message: "Unauthorized"
       });
     }
 
@@ -91,15 +152,14 @@ export const updateQuiz = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Quiz updated successfully",
       quiz: updatedQuiz
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error updating quiz", { error: error.message, quizId: req.params.quizId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error updating quiz"
     });
   }
@@ -109,11 +169,26 @@ export const deleteQuiz = async (req, res) => {
   try {
     const { quizId } = req.params;
 
-    const quiz = await Quiz.findById(quizId);
+    if (!isValidObjectId(quizId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz id",
+        errors: ["quizId must be a valid id"],
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId).populate("courseId", "creator");
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found"
+      });
+    }
+
+    if (!quiz.courseId || String(quiz.courseId.creator) !== String(req.id)) {
+      return sendError(res, {
+        status: 403,
+        message: "Unauthorized"
       });
     }
 
@@ -122,20 +197,19 @@ export const deleteQuiz = async (req, res) => {
 
     // Update course progress
     await CourseProgress.updateMany(
-      { courseId: quiz.courseId },
+      { courseId: quiz.courseId._id },
       { $inc: { totalQuizzes: -1 } }
     );
 
     await Quiz.findByIdAndDelete(quizId);
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Quiz deleted successfully"
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error deleting quiz", { error: error.message, quizId: req.params.quizId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error deleting quiz"
     });
   }
@@ -146,10 +220,18 @@ export const getQuizById = async (req, res) => {
     const { quizId } = req.params;
     const userId = req.id;
 
+    if (!isValidObjectId(quizId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz id",
+        errors: ["quizId must be a valid id"],
+      });
+    }
+
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found"
       });
     }
@@ -174,20 +256,18 @@ export const getQuizById = async (req, res) => {
         }))
       };
 
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         quiz: studentQuiz
       });
     }
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       quiz
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching quiz", { error: error.message, quizId: req.params.quizId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching quiz"
     });
   }
@@ -197,6 +277,14 @@ export const getQuizzesByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
 
     const quizzes = await Quiz.find({ courseId, isActive: true })
       .populate('lectureId', 'lectureTitle')
@@ -210,8 +298,7 @@ export const getQuizzesByCourse = async (req, res) => {
 
     if (isInstructor) {
       // Return full quiz data for instructors
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         quizzes
       });
     } else {
@@ -226,15 +313,14 @@ export const getQuizzesByCourse = async (req, res) => {
         questionCount: quiz.questions.length
       }));
 
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         quizzes: studentQuizzes
       });
     }
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching quizzes", { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching quizzes"
     });
   }
@@ -247,10 +333,19 @@ export const startQuiz = async (req, res) => {
     const { quizId } = req.params;
     const userId = req.id;
 
+    const missingFields = getMissingFields({ quizId });
+    if (missingFields.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "quizId is required",
+        errors: missingFields,
+      });
+    }
+
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found"
       });
     }
@@ -262,8 +357,8 @@ export const startQuiz = async (req, res) => {
     });
 
     if (!courseProgress) {
-      return res.status(403).json({
-        success: false,
+      return sendError(res, {
+        status: 403,
         message: "You don't have access to this course"
       });
     }
@@ -275,8 +370,8 @@ export const startQuiz = async (req, res) => {
     });
 
     if (attemptCount >= quiz.maxAttempts) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, {
+        status: 400,
         message: `Maximum attempts (${quiz.maxAttempts}) exceeded for this quiz`
       });
     }
@@ -306,17 +401,16 @@ export const startQuiz = async (req, res) => {
       }))
     };
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Quiz started successfully",
       quiz: studentQuiz,
       attemptId: attempt._id,
       timeLimit: quiz.timeLimit
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error starting quiz", { error: error.message, quizId: req.params.quizId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error starting quiz"
     });
   }
@@ -328,6 +422,15 @@ export const submitQuiz = async (req, res) => {
     const { answers, timeSpent } = req.body;
     const userId = req.id;
 
+    const missingFields = getMissingFields({ attemptId, answers });
+    if (missingFields.length > 0 || !Array.isArray(answers) || answers.length === 0) {
+      return sendError(res, {
+        status: 400,
+        message: "attemptId and answers are required",
+        errors: missingFields.length > 0 ? missingFields : ["answers"],
+      });
+    }
+
     const attempt = await QuizAttempt.findOne({
       _id: attemptId,
       userId,
@@ -335,16 +438,16 @@ export const submitQuiz = async (req, res) => {
     });
 
     if (!attempt) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz attempt not found or already completed"
       });
     }
 
     const quiz = await Quiz.findById(attempt.quizId);
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found"
       });
     }
@@ -443,8 +546,7 @@ export const submitQuiz = async (req, res) => {
       }
     );
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Quiz submitted successfully",
       result: {
         score: totalScore,
@@ -455,9 +557,9 @@ export const submitQuiz = async (req, res) => {
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error submitting quiz", { error: error.message, attemptId: req.params.attemptId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error submitting quiz"
     });
   }
@@ -474,15 +576,15 @@ export const getQuizResults = async (req, res) => {
     }).populate('quizId');
 
     if (!attempt) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz attempt not found"
       });
     }
 
     if (attempt.status !== 'completed') {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, {
+        status: 400,
         message: "Quiz not yet completed"
       });
     }
@@ -517,14 +619,13 @@ export const getQuizResults = async (req, res) => {
       })
     };
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       results
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching quiz results", { error: error.message, attemptId: req.params.attemptId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching quiz results"
     });
   }
@@ -543,14 +644,13 @@ export const getStudentQuizHistory = async (req, res) => {
     .populate('lectureId', 'lectureTitle')
     .sort({ createdAt: -1 });
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       attempts
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching quiz history", { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching quiz history"
     });
   }
@@ -568,8 +668,8 @@ export const getQuizByLecture = async (req, res) => {
     }).populate('lectureId', 'lectureTitle');
 
     if (!quiz) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Quiz not found for this lecture"
       });
     }
@@ -582,8 +682,7 @@ export const getQuizByLecture = async (req, res) => {
 
     if (isInstructor) {
       // Return full quiz data for instructors
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         quiz
       });
     } else {
@@ -600,15 +699,14 @@ export const getQuizByLecture = async (req, res) => {
         }))
       };
 
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         quiz: studentQuiz
       });
     }
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching quiz for lecture", { error: error.message, lectureId: req.params.lectureId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching quiz for lecture"
     });
   }

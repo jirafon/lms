@@ -2,12 +2,22 @@ import { generateCertificate, deleteCertificateFile } from '../utils/certificate
 import { CourseProgress } from '../models/courseProgress.model.js';
 import { User } from '../models/user.model.js';
 import { Course } from '../models/course.model.js';
-import fs from 'fs';
+import { sendError, sendSuccess } from '../utils/apiResponse.js';
+import { logger } from '../utils/logger.js';
+import { isValidObjectId } from '../utils/validators.js';
 
 export const generateCourseCertificate = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
 
     // Check if user has completed the course
     const progress = await CourseProgress.findOne({
@@ -16,15 +26,15 @@ export const generateCourseCertificate = async (req, res) => {
     }).populate('courseId');
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Progreso del curso no encontrado"
       });
     }
 
     if (!progress.certificateEarned) {
-      return res.status(400).json({
-        success: false,
+      return sendError(res, {
+        status: 400,
         message: "No has completado el curso para obtener el certificado"
       });
     }
@@ -34,8 +44,8 @@ export const generateCourseCertificate = async (req, res) => {
     const course = await Course.findById(courseId).populate('creator', 'name');
 
     if (!user || !course) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Usuario o curso no encontrado"
       });
     }
@@ -53,14 +63,14 @@ export const generateCourseCertificate = async (req, res) => {
       deleteCertificateFile(certificateData.filepath);
       
       if (err) {
-        console.error('Error sending certificate:', err);
+        logger.error('Error sending certificate', { error: err.message, courseId, userId });
       }
     });
 
   } catch (error) {
-    console.error('Error generating certificate:', error);
-    return res.status(500).json({
-      success: false,
+    logger.error('Error generating certificate', { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error al generar el certificado"
     });
   }
@@ -71,14 +81,22 @@ export const checkCertificateEligibility = async (req, res) => {
     const { courseId } = req.params;
     const userId = req.id;
 
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
+
     const progress = await CourseProgress.findOne({
       userId,
       courseId
     });
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Progreso del curso no encontrado"
       });
     }
@@ -95,15 +113,14 @@ export const checkCertificateEligibility = async (req, res) => {
       }
     };
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       eligibility
     });
 
   } catch (error) {
-    console.error('Error checking certificate eligibility:', error);
-    return res.status(500).json({
-      success: false,
+    logger.error('Error checking certificate eligibility', { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error al verificar elegibilidad del certificado"
     });
   }
@@ -118,7 +135,9 @@ export const getUserCertificates = async (req, res) => {
       certificateEarned: true
     }).populate('courseId', 'courseTitle category courseLevel');
 
-    const certificateList = certificates.map(cert => ({
+    const certificateList = certificates
+      .filter(cert => cert.courseId)
+      .map(cert => ({
       courseId: cert.courseId._id,
       courseTitle: cert.courseId.courseTitle,
       category: cert.courseId.category,
@@ -128,15 +147,14 @@ export const getUserCertificates = async (req, res) => {
       finalScore: cert.averageQuizScore
     }));
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       certificates: certificateList
     });
 
   } catch (error) {
-    console.error('Error fetching user certificates:', error);
-    return res.status(500).json({
-      success: false,
+    logger.error('Error fetching user certificates', { error: error.message, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error al obtener certificados del usuario"
     });
   }

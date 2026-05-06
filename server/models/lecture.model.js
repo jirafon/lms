@@ -9,6 +9,11 @@ const lectureSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  lectureOrder: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   videoUrl: { type: String },
   publicId: { type: String },
   supportMaterials: [

@@ -361,7 +361,7 @@ async function loadPrivacyQuiz() {
         category: "Data Governance",
         description: "Curso completo sobre el manejo adecuado de datos personales y privacidad",
         courseLevel: "Beginner",
-        coursePrice: 0,
+        coursePrice: 29,
         isPublished: true,
         lectures: []
       });

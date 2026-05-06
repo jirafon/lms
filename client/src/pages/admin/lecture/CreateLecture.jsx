@@ -96,12 +96,9 @@ const CreateLecture = () => {
     <div className="flex-1 mx-10">
       <div className="mb-4">
         <h1 className="font-bold text-xl">
-          Let's add lectures, add some basic details for your new lecture
+          Agrega los capítulos aquí.
         </h1>
-        <p className="text-sm">
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Possimus,
-          laborum!
-        </p>
+        
       </div>
       <div className="space-y-4">
         <div>
@@ -110,7 +107,7 @@ const CreateLecture = () => {
             type="text"
             value={lectureTitle}
             onChange={(e) => setLectureTitle(e.target.value)}
-            placeholder="Your Title Name"
+            placeholder="Nombre del capítulo"
           />
         </div>
         <div>
@@ -118,7 +115,7 @@ const CreateLecture = () => {
           <textarea
             value={lectureDescription}
             onChange={(e) => setLectureDescription(e.target.value)}
-            placeholder="Short description for this lecture"
+            placeholder="Resumen breve del contenido del capítulo"
             className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
@@ -176,6 +173,7 @@ const CreateLecture = () => {
                 lecture={lecture}
                 courseId={courseId}
                 index={index}
+                totalLectures={lectureData.lectures.length}
               />
             ))
           )}

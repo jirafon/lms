@@ -358,7 +358,7 @@ async function createPrivacyCourse() {
         category: "Data Privacy",
         description: "Curso completo sobre el manejo adecuado de datos personales y privacidad. Aprende los fundamentos, buenas prácticas y responsabilidades en el manejo de datos personales.",
         courseLevel: "Beginner",
-        coursePrice: 0,
+        coursePrice: 29,
         isPublished: true,
         lectures: []
       });

@@ -399,12 +399,14 @@ async function upsertLecture(course, chapter, index, existingLecturesByTitle) {
     lecture = await Lecture.create({
       lectureTitle: chapter.title,
       lectureDescription: chapter.description,
+      lectureOrder: index + 1,
       isPreviewFree: index === 0
     });
     console.log(`   ✅ Lecture creada: ${lecture.lectureTitle} (${lecture._id})`);
   } else {
     lecture.lectureTitle = chapter.title;
     lecture.lectureDescription = chapter.description;
+    lecture.lectureOrder = index + 1;
     lecture.isPreviewFree = index === 0;
     await lecture.save();
     console.log(`   ♻️ Lecture actualizada: ${lecture.lectureTitle} (${lecture._id})`);
@@ -465,7 +467,7 @@ async function createOrUpdateMpdCourse() {
         category: 'Compliance',
         description: 'Curso para colaboradores sobre modelo de prevencion de delitos, riesgos, controles y reporte de irregularidades.',
         courseLevel: 'Beginner',
-        coursePrice: 0,
+        coursePrice: 29,
         creator: creatorId,
         isPublished: true,
         lectures: []
@@ -477,7 +479,7 @@ async function createOrUpdateMpdCourse() {
       course.subTitle = 'Curso base de cumplimiento para colaboradores';
       course.description = 'Curso para colaboradores sobre modelo de prevencion de delitos, riesgos, controles y reporte de irregularidades.';
       course.courseLevel = 'Beginner';
-      course.coursePrice = 0;
+      course.coursePrice = 29;
       course.creator = course.creator || creatorId;
       course.isPublished = true;
       console.log(`✅ Curso encontrado: ${course.courseTitle} (${course._id})`);

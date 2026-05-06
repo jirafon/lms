@@ -22,6 +22,14 @@ import { Edit, Users } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const formatCoursePrice = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "NA";
+  }
+
+  return `US$${value}`;
+};
+
 const CourseTable = () => {
     const {data, isLoading, error} = useGetCreatorCourseQuery();
   const [studentsDialogOpen, setStudentsDialogOpen] = useState(false);
@@ -46,7 +54,7 @@ const CourseTable = () => {
         <TableCaption>A list of your recent courses.</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Price</TableHead>
+            <TableHead className="w-[160px]">Precio por usuario</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Title</TableHead>
             <TableHead className="text-right">Action</TableHead>
@@ -55,7 +63,12 @@ const CourseTable = () => {
         <TableBody>
           {data?.courses?.map((course) => (
             <TableRow key={course._id}>
-              <TableCell className="font-medium">{course?.coursePrice || "NA"}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex flex-col">
+                  <span>{formatCoursePrice(course?.coursePrice)}</span>
+                  <span className="text-xs text-muted-foreground">por usuario</span>
+                </div>
+              </TableCell>
               <TableCell> <Badge>{course.isPublished ? "Published" : "Draft"}</Badge> </TableCell>
               <TableCell>{course.courseTitle}</TableCell>
               <TableCell className="text-right">

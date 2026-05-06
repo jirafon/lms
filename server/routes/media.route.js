@@ -1,6 +1,8 @@
 import express from "express";
 import { upload, handleMulterError } from "../utils/multer.js";
 import { uploadMedia, uploadVideo } from "../utils/s3.js";
+import { sendError, sendSuccess } from "../utils/apiResponse.js";
+import { logger } from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -8,40 +10,37 @@ router.route("/upload-video").post(
   upload.single("file"), 
   handleMulterError,
   async(req,res) => {
-    console.log("🎥 Video upload request received");
-    console.log("📁 File:", req.file?.originalname);
-    console.log("📏 Size:", req.file?.size, "bytes");
-    console.log("🔧 MIME type:", req.file?.mimetype);
-    console.log("📂 Temp path:", req.file?.path);
-    
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded"
+      return sendError(res, {
+        status: 400,
+        message: "No file uploaded",
+        errors: ["file is required"],
       });
     }
     
     try {
-        console.log("🚀 Starting S3 upload process...");
+        logger.info("Uploading video to S3", {
+          fileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+        });
         const result = await uploadVideo(req.file.path, req.file.originalname);
-        
-        console.log("✅ Video upload completed successfully");
-        console.log("🔗 Final URL:", result.url);
-        
-        res.status(200).json({
-            success:true,
+
+        return sendSuccess(res, {
             message:"Video uploaded successfully to S3.",
             data:result
         });
     } catch (error) {
-        console.error("❌ Video upload failed");
-        console.error("🔍 Error:", error.message);
-        console.error("📋 Full error:", error);
-        
-        res.status(500).json({
-            success: false,
+        logger.error("Video upload failed", {
+          error: error.message,
+          fileName: req.file?.originalname,
+          mimeType: req.file?.mimetype,
+        });
+
+        return sendError(res, {
+            status: 500,
             message:"Error uploading video to S3",
-            error: error.message
+            errors: [error.message],
         });
     }
 });
@@ -50,40 +49,37 @@ router.route("/upload-support-material").post(
   upload.single("file"), 
   handleMulterError,
   async (req, res) => {
-    console.log("📄 Support material upload request received");
-    console.log("📁 File:", req.file?.originalname);
-    console.log("📏 Size:", req.file?.size, "bytes");
-    console.log("🔧 MIME type:", req.file?.mimetype);
-    console.log("📂 Temp path:", req.file?.path);
-
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded"
+      return sendError(res, {
+        status: 400,
+        message: "No file uploaded",
+        errors: ["file is required"],
       });
     }
 
     try {
-      console.log("🚀 Starting S3 upload process...");
+      logger.info("Uploading support material to S3", {
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+      });
       const result = await uploadMedia(req.file.path, req.file.originalname);
 
-      console.log("✅ Support material upload completed successfully");
-      console.log("🔗 Final URL:", result.url);
-
-      res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         message: "Support material uploaded successfully to S3.",
         data: result
       });
     } catch (error) {
-      console.error("❌ Support material upload failed");
-      console.error("🔍 Error:", error.message);
-      console.error("📋 Full error:", error);
+      logger.error("Support material upload failed", {
+        error: error.message,
+        fileName: req.file?.originalname,
+        mimeType: req.file?.mimetype,
+      });
 
-      res.status(500).json({
-        success: false,
+      return sendError(res, {
+        status: 500,
         message: "Error uploading support material to S3",
-        error: error.message
+        errors: [error.message],
       });
     }
   }

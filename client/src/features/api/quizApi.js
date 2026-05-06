@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 const QUIZ_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/quiz"
@@ -8,11 +8,7 @@ const QUIZ_API = import.meta.env.VITE_API_BASE_URL
 export const quizApi = createApi({
   reducerPath: "quizApi",
   tagTypes: ["Quiz", "QuizAttempt"],
-  baseQuery: fetchBaseQuery({
-    baseUrl: QUIZ_API,
-    credentials: "include",
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery(QUIZ_API),
   endpoints: (builder) => ({
     // Create quiz for a course
     createQuiz: builder.mutation({

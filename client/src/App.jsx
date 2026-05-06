@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import "./App.css";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import HeroSection from "./pages/student/HeroSection";
 import MainLayout from "./layout/MainLayout";
 import Courses from "./pages/student/Courses";
@@ -44,6 +46,14 @@ const appRouter = createBrowserRouter([
             <Login />
           </AuthenticatedUser>
         ),
+      },
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "reset-password/:token",
+        element: <ResetPassword />,
       },
       {
         path: "my-learning",

@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { CheckCircle, XCircle, AlertCircle, Clock, Trophy, RefreshCw, Target } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useGetQuizResultsQuery } from '@/features/api/quizApi';
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Progress } from './ui/progress';
 import { Alert, AlertDescription } from './ui/alert';
 
 const QuizResults = ({ attemptId, onRetry, onContinue }) => {
-  const { data: result, isLoading, error } = useGetQuizResultsQuery(attemptId);
+  const { data, isLoading, error } = useGetQuizResultsQuery(attemptId);
   const { t } = useTranslation();
 
   if (isLoading) {
@@ -37,7 +36,11 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
     );
   }
 
-  if (!result) {
+  const results = data?.results;
+  const attempt = results?.attempt;
+  const questions = results?.questions || [];
+
+  if (!results || !attempt) {
     return (
       <Card className="max-w-2xl mx-auto mt-8">
         <CardContent className="p-6">
@@ -49,7 +52,11 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
     );
   }
 
-  const { quiz, score, totalQuestions, correctAnswers, timeTaken, passed } = result;
+  const score = attempt.percentage;
+  const totalQuestions = questions.length;
+  const correctAnswers = questions.filter((question) => question.userAnswer?.isCorrect).length;
+  const timeTaken = attempt.timeSpent;
+  const passed = attempt.passed;
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -75,7 +82,6 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Score Summary */}
         <div className="grid grid-cols-2 gap-4 text-center">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-2xl font-bold text-blue-600">{score}%</div>
@@ -89,64 +95,52 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
           </div>
         </div>
 
-        {/* Time Taken */}
-        {timeTaken && (
+        {timeTaken ? (
           <div className="flex items-center justify-center gap-2 text-gray-600">
             <Clock className="h-4 w-4" />
             <span>{t('quiz.time_taken')}: {formatTime(timeTaken)}</span>
           </div>
-        )}
+        ) : null}
 
-        {/* Pass/Fail Status */}
         <div className="text-center">
-          <Badge variant={passed ? "default" : "destructive"} className="text-lg px-4 py-2">
+          <Badge variant={passed ? 'default' : 'destructive'} className="text-lg px-4 py-2">
             {passed ? 'APROBADO' : 'NO APROBADO'}
           </Badge>
         </div>
 
-        {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>{t('quiz.your_score')}: {score}%</span>
-            <span>{t('quiz.passing_score')}: {quiz.passingScore}%</span>
+            <span>{passed ? 'Desbloqueado' : 'Requiere reintento'}</span>
           </div>
-          <Progress 
-            value={score} 
-            className="h-3"
-            style={{
-              '--progress-background': passed ? '#10b981' : '#ef4444'
-            }}
-          />
+          <Progress value={score} className="h-3" />
         </div>
 
-        {/* Status Alert */}
-        <Alert className={passed ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+        <Alert className={passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
           {passed ? (
             <CheckCircle className="h-4 w-4 text-green-600" />
           ) : (
             <XCircle className="h-4 w-4 text-red-600" />
           )}
-          <AlertDescription className={passed ? "text-green-800" : "text-red-800"}>
-            {passed 
-              ? t('quiz.congratulations_passed', { score, passingScore: quiz.passingScore })
-              : t('quiz.better_luck_next_time', { score, passingScore: quiz.passingScore })
-            }
+          <AlertDescription className={passed ? 'text-green-800' : 'text-red-800'}>
+            {passed
+              ? `Aprobaste con ${score}%. Ya puedes continuar con el siguiente contenido.`
+              : `Obtuviste ${score}%. Revisa las respuestas incorrectas y vuelve a intentarlo para desbloquear el siguiente capítulo.`}
           </AlertDescription>
         </Alert>
 
-        {/* Question Review */}
-        {quiz && quiz.questions && (
+        {questions.length > 0 && (
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Target className="h-5 w-5" />
               {t('quiz.question_review')}
             </h3>
-            {quiz.questions.map((question, index) => {
-              const userAnswer = result.userAnswers?.[index];
-              const isCorrect = result.correctAnswers?.[index];
-              
+            {questions.map((question, index) => {
+              const userAnswer = question.userAnswer;
+              const isCorrect = Boolean(userAnswer?.isCorrect);
+
               return (
-                <Card key={index} className={isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+                <Card key={index} className={isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       {isCorrect ? (
@@ -154,7 +148,7 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
                       ) : (
                         <XCircle className="h-5 w-5 text-red-600 mt-1 flex-shrink-0" />
                       )}
-                      
+
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{t('quiz.quiz_question')} {index + 1}</span>
@@ -164,16 +158,16 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
                             {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
                           </span>
                         </div>
-                        
+
                         <p className="text-gray-700">{question.question}</p>
-                        
+
                         <div className="text-sm space-y-1">
                           <p className="text-gray-600">
-                            <span className="font-medium">{t('quiz.your_answer')}:</span> {userAnswer}
+                            <span className="font-medium">{t('quiz.your_answer')}:</span> {userAnswer?.textAnswer || userAnswer?.selectedOptions?.join(', ') || 'Sin respuesta'}
                           </p>
                           {!isCorrect && question.correctAnswer && (
                             <p className="text-gray-600">
-                              <span className="font-medium">{t('quiz.correct_answer')}:</span> {question.correctAnswer}
+                              <span className="font-medium">{t('quiz.correct_answer')}:</span> {Array.isArray(question.correctAnswer) ? question.correctAnswer.join(', ') : question.correctAnswer}
                             </p>
                           )}
                           {question.explanation && (
@@ -193,7 +187,6 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
           {onRetry && (
             <Button variant="outline" onClick={onRetry} className="flex items-center gap-2">
@@ -212,4 +205,4 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
   );
 };
 
-export default QuizResults; 
+export default QuizResults;

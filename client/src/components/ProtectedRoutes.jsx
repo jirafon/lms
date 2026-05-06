@@ -2,7 +2,11 @@ import { useSelector } from "react-redux"
 import { Navigate } from "react-router-dom";
 
 export const ProtectedRoute = ({children}) => {
-    const {isAuthenticated} = useSelector(store=>store.auth);
+    const {isAuthenticated, authChecked} = useSelector(store=>store.auth);
+
+    if(!authChecked){
+        return null;
+    }
 
     if(!isAuthenticated){
         return <Navigate to="/login"/>
@@ -11,24 +15,32 @@ export const ProtectedRoute = ({children}) => {
     return children;
 }
 export const AuthenticatedUser = ({children}) => {
-    const {isAuthenticated} = useSelector(store=>store.auth);
+    const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
+
+    if(!authChecked){
+        return null;
+    }
 
     if(isAuthenticated){
-        return <Navigate to="/"/>
+        return <Navigate to={user?.role === "instructor" ? "/admin" : "/"}/>
     }
 
     return children;
 }
 
 export const AdminRoute = ({children}) => {
-    const {user, isAuthenticated} = useSelector(store=>store.auth);
+    const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
+
+    if(!authChecked){
+        return null;
+    }
 
     if(!isAuthenticated){
         return <Navigate to="/login"/>
     }
 
     if(user?.role !== "instructor"){
-        return <Navigate to="/"/>
+        return <Navigate to="/my-learning"/>
     }
 
     return children;

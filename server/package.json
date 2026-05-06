@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "seed:mpd": "node create-mpd-course.js",
+    "seed:mercado-publico": "node create-mercado-publico-course.js",
+    "seed:compliance": "npm run seed:mpd && npm run seed:mercado-publico",
     "test-s3": "node test-s3.js",
     "test-paypal": "node test-paypal.js"
   },
@@ -26,6 +29,7 @@
     "mongoose": "^8.8.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.7",
     "nodemon": "^3.1.10",
     "pdfkit": "^0.17.1",
     "stripe": "^17.3.1"

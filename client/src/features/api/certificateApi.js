@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 const CERTIFICATE_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/certificate"
@@ -8,11 +8,7 @@ const CERTIFICATE_API = import.meta.env.VITE_API_BASE_URL
 export const certificateApi = createApi({
   reducerPath: "certificateApi",
   tagTypes: ["Certificate"],
-  baseQuery: fetchBaseQuery({
-    baseUrl: CERTIFICATE_API,
-    credentials: "include",
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery(CERTIFICATE_API),
   endpoints: (builder) => ({
     // Get user certificates
     getUserCertificates: builder.query({

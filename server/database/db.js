@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 
 const connectDB = async () => {
     try {
@@ -6,16 +7,15 @@ const connectDB = async () => {
         const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.MONGODB_URL;
         
         if (!mongoUri) {
-            console.error("MongoDB URI not found in environment variables!");
-            console.error("Available environment variables:", Object.keys(process.env));
+            logger.error("MongoDB URI not found in environment variables");
             throw new Error("MongoDB URI is required but not provided in environment variables");
         }
         
-        console.log('Attempting to connect to MongoDB...');
+        logger.info("Attempting to connect to MongoDB");
         await mongoose.connect(mongoUri);
-        console.log('MongoDB Connected!');
+        logger.info("MongoDB connected");
     } catch (error) {
-        console.error("MongoDB connection error:", error);
+        logger.error("MongoDB connection error", { error: error.message });
         process.exit(1); // Stop the server if DB connection fails
     }
 }

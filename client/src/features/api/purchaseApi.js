@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 //const COURSE_PURCHASE_API = "http://localhost:3010/api/v1/purchase";
 
@@ -9,11 +9,7 @@ const COURSE_PURCHASE_API = import.meta.env.VITE_API_BASE_URL
 
 export const purchaseApi = createApi({
   reducerPath: "purchaseApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: COURSE_PURCHASE_API,
-    credentials: "include",
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery(COURSE_PURCHASE_API),
   endpoints: (builder) => ({
     createCheckoutSession: builder.mutation({
       query: (courseId) => ({

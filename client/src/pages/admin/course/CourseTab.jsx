@@ -368,7 +368,7 @@ const CourseTab = () => {
                 name="coursePrice"
                 value={input.coursePrice}
                 onChange={changeEventHandler}
-                placeholder="199"
+                placeholder="29"
                 className="w-fit"
               />
             </div>

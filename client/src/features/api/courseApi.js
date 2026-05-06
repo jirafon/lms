@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 const COURSE_API = import.meta.env.VITE_API_BASE_URL 
   ? import.meta.env.VITE_API_BASE_URL + "/course"
@@ -8,11 +8,7 @@ const COURSE_API = import.meta.env.VITE_API_BASE_URL
 export const courseApi = createApi({
   reducerPath: "courseApi",
   tagTypes: ["Refetch_Creator_Course", "Refetch_Lecture"],
-  baseQuery: fetchBaseQuery({
-    baseUrl: COURSE_API,
-    credentials: "include",
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery(COURSE_API),
   endpoints: (builder) => ({
     createCourse: builder.mutation({
       query: ({ courseTitle, category }) => ({
@@ -83,6 +79,7 @@ export const courseApi = createApi({
         method: "POST",
         body: { lectureTitle, lectureDescription, supportMaterials },
       }),
+      invalidatesTags: ["Refetch_Lecture"],
     }),
     getCourseLecture: builder.query({
       query: (courseId) => ({
@@ -95,6 +92,7 @@ export const courseApi = createApi({
       query: ({
         lectureTitle,
         lectureDescription,
+        lectureOrder,
         videoInfo,
         supportMaterials,
         isPreviewFree,
@@ -103,8 +101,17 @@ export const courseApi = createApi({
       }) => ({
         url: `/${courseId}/lecture/${lectureId}`,
         method: "POST",
-        body: { lectureTitle, lectureDescription, videoInfo, supportMaterials, isPreviewFree },
+        body: { lectureTitle, lectureDescription, lectureOrder, videoInfo, supportMaterials, isPreviewFree },
       }),
+      invalidatesTags: ["Refetch_Lecture"],
+    }),
+    reorderLecture: builder.mutation({
+      query: ({ courseId, lectureId, direction }) => ({
+        url: `/${courseId}/lecture/${lectureId}/reorder`,
+        method: "PUT",
+        body: { direction },
+      }),
+      invalidatesTags: ["Refetch_Lecture"],
     }),
     removeLecture: builder.mutation({
       query: (lectureId) => ({
@@ -145,6 +152,7 @@ export const {
   useCreateLectureMutation,
   useGetCourseLectureQuery,
   useEditLectureMutation,
+  useReorderLectureMutation,
   useRemoveLectureMutation,
   useGetLectureByIdQuery,
   usePublishCourseMutation,

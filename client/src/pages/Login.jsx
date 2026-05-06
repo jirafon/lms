@@ -17,10 +17,12 @@ import {
 } from "@/features/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 const Login = () => {
+  const { t } = useTranslation();
   const [signupInput, setSignupInput] = useState({
     name: "",
     email: "",
@@ -65,25 +67,25 @@ const Login = () => {
 
 useEffect(() => {
   if (registerIsSuccess && registerData) {
-    toast.success(registerData.message ?? "Signup successful.");
+    toast.success(registerData.message ?? t("auth.register_success"));
   }
   if (registerError) {
     const signupMsg =
       registerError?.data?.message ??    // RTK Query “data” payload
       registerError?.error?.message ??   // fallback shape
-      "Signup failed.";
+      t("auth.register_failed");
     toast.error(signupMsg);
   }
 
   if (loginIsSuccess && loginData) {
-    toast.success(loginData.message ?? "Login successful.");
-    navigate("/");
+    toast.success(loginData.message ?? t("auth.login_success"));
+    navigate(loginData.user?.role === "instructor" ? "/admin" : "/");
   }
   if (loginError) {
     const loginMsg =
       loginError?.data?.message ??
       loginError?.error?.message ??
-      "Login failed.";
+      t("auth.login_failed");
     toast.error(loginMsg);
   }
 }, [
@@ -93,7 +95,8 @@ useEffect(() => {
   loginIsSuccess,
   loginData,
   loginError,
-  navigate
+  navigate,
+  t
 ]);
 
 
@@ -101,48 +104,48 @@ useEffect(() => {
     <div className="flex items-center w-full justify-center mt-20">
       <Tabs defaultValue="login" className="w-[400px]">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signup">Signup</TabsTrigger>
-          <TabsTrigger value="login">Login</TabsTrigger>
+          <TabsTrigger value="signup">{t("auth.register")}</TabsTrigger>
+          <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
         </TabsList>
         <TabsContent value="signup">
           <Card>
             <CardHeader>
-              <CardTitle>Signup</CardTitle>
+              <CardTitle>{t("auth.register")}</CardTitle>
               <CardDescription>
-                Create a new account and click signup when you're done.
+                {t("auth.signup_description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="space-y-1">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t("auth.name")}</Label>
                 <Input
                   type="text"
                   name="name"
                   value={signupInput.name}
                   onChange={(e) => changeInputHandler(e, "signup")}
-                  placeholder="Eg. patel"
+                  placeholder={t("auth.name_placeholder")}
                   required="true"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="username">Email</Label>
+                <Label htmlFor="username">{t("auth.email")}</Label>
                 <Input
                   type="email"
                   name="email"
                   value={signupInput.email}
                   onChange={(e) => changeInputHandler(e, "signup")}
-                  placeholder="Eg. patel@gmail.com"
+                  placeholder={t("auth.email_placeholder")}
                   required="true"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="username">Password</Label>
+                <Label htmlFor="username">{t("auth.password")}</Label>
                 <Input
                   type="password"
                   name="password"
                   value={signupInput.password}
                   onChange={(e) => changeInputHandler(e, "signup")}
-                  placeholder="Eg. xyz"
+                  placeholder={t("auth.password_placeholder")}
                   required="true"
                 />
               </div>
@@ -154,11 +157,10 @@ useEffect(() => {
               >
                 {registerIsLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please
-                    wait
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("auth.please_wait")}
                   </>
                 ) : (
-                  "Signup"
+                  t("auth.register")
                 )}
               </Button>
             </CardFooter>
@@ -167,49 +169,56 @@ useEffect(() => {
         <TabsContent value="login">
           <Card>
             <CardHeader>
-              <CardTitle>Login</CardTitle>
+              <CardTitle>{t("auth.login")}</CardTitle>
               <CardDescription>
-                Login your password here. After signup, you'll be logged in.
+                {t("auth.login_description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="space-y-1">
-                <Label htmlFor="current">Email</Label>
+                <Label htmlFor="current">{t("auth.email")}</Label>
                 <Input
                   type="email"
                   name="email"
                   value={loginInput.email}
                   onChange={(e) => changeInputHandler(e, "login")}
-                  placeholder="Eg. patel@gmail.com"
+                  placeholder={t("auth.email_placeholder")}
                   required="true"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="new">Password</Label>
+                <Label htmlFor="new">{t("auth.password")}</Label>
                 <Input
                   type="password"
                   name="password"
                   value={loginInput.password}
                   onChange={(e) => changeInputHandler(e, "login")}
-                  placeholder="Eg. xyz"
+                  placeholder={t("auth.password_placeholder")}
                   required="true"
                 />
               </div>
             </CardContent>
             <CardFooter>
-              <Button
-                disabled={loginIsLoading}
-                onClick={() => handleRegistration("login")}
-              >
-                {loginIsLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please
-                    wait
-                  </>
-                ) : (
-                  "Login"
-                )}
-              </Button>
+              <div className="flex w-full flex-col gap-3">
+                <Button
+                  disabled={loginIsLoading}
+                  onClick={() => handleRegistration("login")}
+                >
+                  {loginIsLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("auth.please_wait")}
+                    </>
+                  ) : (
+                    t("auth.login")
+                  )}
+                </Button>
+                <Link
+                  to="/forgot-password"
+                  className="text-center text-sm font-medium text-blue-600 hover:underline"
+                >
+                  {t("auth.forgot_password")}
+                </Link>
+              </div>
             </CardFooter>
           </Card>
         </TabsContent>

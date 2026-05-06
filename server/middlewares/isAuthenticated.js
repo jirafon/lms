@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import { sendError } from "../utils/apiResponse.js";
+import { logger } from "../utils/logger.js";
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -10,18 +12,18 @@ const isAuthenticated = async (req, res, next) => {
     const token = req.cookies?.token || bearerToken;
 
     if (!token) {
-      return res.status(401).json({
+      return sendError(res, {
+        status: 401,
         message: "User not authenticated",
-        success: false,
       });
     }
 
     const decode = await jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decode) {
-      return res.status(401).json({
+      return sendError(res, {
+        status: 401,
         message: "Invalid token",
-        success: false,
       });
     }
 
@@ -29,16 +31,16 @@ const isAuthenticated = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-      return res.status(401).json({
+      return sendError(res, {
+        status: 401,
         message: "Invalid token",
-        success: false,
       });
     }
 
-    console.error("Authentication error:", error);
-    return res.status(500).json({
+    logger.error("Authentication error", { error: error.message });
+    return sendError(res, {
+      status: 500,
       message: "Internal server error during authentication",
-      success: false,
     });
   }
 };

@@ -2,14 +2,62 @@ import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { uploadMedia, deleteMediaFromS3, extractS3KeyFromUrl, deleteVideoFromS3 } from "../utils/s3.js";
+import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
+import { logger } from "../utils/logger.js";
+import { isValidObjectId, validateCoursePayload, validateLecturePayload } from "../utils/validators.js";
+
+const getOrderedLectures = (lectures = []) => {
+    return lectures
+        .map((lecture, index) => ({
+            lecture,
+            order: lecture.lectureOrder || index + 1,
+        }))
+        .sort((first, second) => first.order - second.order)
+        .map(({ lecture }) => lecture);
+};
+
+const normalizeLectureOrder = async (courseId) => {
+    const course = await Course.findById(courseId).populate("lectures");
+    if (!course) {
+        return null;
+    }
+
+    const orderedLectures = getOrderedLectures(course.lectures);
+
+    await Promise.all(
+        orderedLectures.map((lecture, index) =>
+            Lecture.findByIdAndUpdate(lecture._id, { lectureOrder: index + 1 })
+        )
+    );
+
+    course.lectures = orderedLectures.map((lecture) => lecture._id);
+    await course.save();
+
+    return orderedLectures.map((lecture, index) => ({
+        ...lecture.toObject(),
+        lectureOrder: index + 1,
+    }));
+};
 
 export const createCourse = async (req,res) => {
     try {
         const {courseTitle, category} = req.body;
-        if(!courseTitle || !category) {
-            return res.status(400).json({
-                message:"Course title and category is required."
+        const missingFields = getMissingFields({ courseTitle, category });
+        if(missingFields.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message:"Course title and category is required.",
+                errors: missingFields,
             })
+        }
+
+        const validationErrors = validateCoursePayload(req.body);
+        if (validationErrors.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course payload",
+                errors: validationErrors,
+            });
         }
 
         const course = await Course.create({
@@ -18,13 +66,15 @@ export const createCourse = async (req,res) => {
             creator:req.id
         });
 
-        return res.status(201).json({
+        return sendSuccess(res, {
+            status: 201,
             course,
             message:"Course created."
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to create course", { error: error.message, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to create course"
         })
     }
@@ -33,8 +83,7 @@ export const createCourse = async (req,res) => {
 export const searchCourse = async (req,res) => {
     try {
         const {query = "", categories = [], sortByPrice =""} = req.query;
-        console.log(categories);
-        
+
         // create search query
         const searchCriteria = {
             isPublished:true,
@@ -60,14 +109,16 @@ export const searchCourse = async (req,res) => {
 
         let courses = await Course.find(searchCriteria).populate({path:"creator", select:"name photoUrl"}).sort(sortOptions);
 
-        return res.status(200).json({
-            success:true,
+        return sendSuccess(res, {
             courses: courses || []
         });
 
     } catch (error) {
-        console.log(error);
-        
+        logger.error("Failed to search courses", { error: error.message, query: req.query?.query });
+        return sendError(res, {
+            status: 500,
+            message: "Failed to search courses",
+        });
     }
 }
 
@@ -75,16 +126,18 @@ export const getPublishedCourse = async (_,res) => {
     try {
         const courses = await Course.find({isPublished:true}).populate({path:"creator", select:"name photoUrl"});
         if(!courses){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Course not found"
             })
         }
-        return res.status(200).json({
+        return sendSuccess(res, {
             courses,
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to get published courses", { error: error.message });
+        return sendError(res, {
+            status: 500,
             message:"Failed to get published courses"
         })
     }
@@ -94,17 +147,19 @@ export const getCreatorCourses = async (req,res) => {
         const userId = req.id;
         const courses = await Course.find({creator:userId});
         if(!courses){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 courses:[],
                 message:"Course not found"
             })
         };
-        return res.status(200).json({
+        return sendSuccess(res, {
             courses,
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to get creator courses", { error: error.message, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to create course"
         })
     }
@@ -117,7 +172,8 @@ export const getCourseStudents = async (req, res) => {
 
         const course = await Course.findOne({ _id: courseId, creator: userId }).select("_id courseTitle");
         if (!course) {
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message: "Course not found"
             });
         }
@@ -147,13 +203,14 @@ export const getCourseStudents = async (req, res) => {
             });
         }
 
-        return res.status(200).json({
+        return sendSuccess(res, {
             courseTitle: course.courseTitle,
             students: Array.from(uniqueStudents.values()),
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to load course students", { error: error.message, courseId: req.params.courseId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message: "Failed to load course students"
         });
     }
@@ -165,9 +222,27 @@ export const editCourse = async (req,res) => {
         const {courseTitle, subTitle, description, category, courseLevel, coursePrice} = req.body;
         const thumbnail = req.file;
 
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
+        const validationErrors = validateCoursePayload(req.body, { partial: true });
+        if (validationErrors.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course payload",
+                errors: validationErrors,
+            });
+        }
+
         let course = await Course.findById(courseId);
         if (!course) {
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message: "Course not found!"
             });
         }
@@ -198,14 +273,15 @@ export const editCourse = async (req,res) => {
 
         course = await Course.findByIdAndUpdate(courseId, updateData, { new: true });
 
-        return res.status(200).json({
+        return sendSuccess(res, {
             course,
             message: "Course updated successfully."
         })
 
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to edit course", { error: error.message, courseId: req.params.courseId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to create course"
         })
     }
@@ -214,19 +290,29 @@ export const getCourseById = async (req,res) => {
     try {
         const {courseId} = req.params;
 
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
         const course = await Course.findById(courseId);
 
         if(!course){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Course not found!"
             })
         }
-        return res.status(200).json({
+        return sendSuccess(res, {
             course
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to get course by id", { error: error.message, courseId: req.params.courseId });
+        return sendError(res, {
+            status: 500,
             message:"Failed to get course by id"
         })
     }
@@ -237,33 +323,59 @@ export const createLecture = async (req,res) => {
         const {lectureTitle, lectureDescription, supportMaterials = []} = req.body;
         const {courseId} = req.params;
 
-        if(!lectureTitle || !courseId){
-            return res.status(400).json({
-                message:"Lecture title is required"
+        const missingFields = getMissingFields({ lectureTitle, courseId });
+        if(missingFields.length > 0){
+            return sendError(res, {
+                status: 400,
+                message:"Lecture title is required",
+                errors: missingFields,
             })
         };
+
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
+        const validationErrors = validateLecturePayload({ lectureTitle, lectureDescription, supportMaterials });
+        if (validationErrors.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture payload",
+                errors: validationErrors,
+            });
+        }
+
+        const course = await Course.findById(courseId);
+        const nextLectureOrder = (course?.lectures?.length || 0) + 1;
 
         // create lecture
         const lecture = await Lecture.create({
             lectureTitle,
             lectureDescription,
+            lectureOrder: nextLectureOrder,
             supportMaterials,
         });
 
-        const course = await Course.findById(courseId);
         if(course){
             course.lectures.push(lecture._id);
             await course.save();
+            await normalizeLectureOrder(courseId);
         }
 
-        return res.status(201).json({
+        return sendSuccess(res, {
+            status: 201,
             lecture,
             message:"Lecture created successfully."
         });
 
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to create lecture", { error: error.message, courseId: req.params.courseId });
+        return sendError(res, {
+            status: 500,
             message:"Failed to create lecture"
         })
     }
@@ -271,31 +383,66 @@ export const createLecture = async (req,res) => {
 export const getCourseLecture = async (req,res) => {
     try {
         const {courseId} = req.params;
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
         const course = await Course.findById(courseId).populate("lectures");
         if(!course){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Course not found"
             })
         }
-        return res.status(200).json({
-            lectures: course.lectures
+        return sendSuccess(res, {
+            lectures: getOrderedLectures(course.lectures)
         });
 
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to get course lectures", { error: error.message, courseId: req.params.courseId });
+        return sendError(res, {
+            status: 500,
             message:"Failed to get lectures"
         })
     }
 }
 export const editLecture = async (req,res) => {
     try {
-        const {lectureTitle, lectureDescription, videoInfo, isPreviewFree, supportMaterials} = req.body;
+        const {lectureTitle, lectureDescription, lectureOrder, videoInfo, isPreviewFree, supportMaterials} = req.body;
         
         const {courseId, lectureId} = req.params;
+
+        if (!isValidObjectId(courseId) || !isValidObjectId(lectureId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture or course id",
+                errors: ["courseId and lectureId must be valid ids"],
+            });
+        }
+
+        const validationErrors = validateLecturePayload({
+            lectureTitle,
+            lectureDescription,
+            lectureOrder,
+            videoInfo,
+            isPreviewFree,
+            supportMaterials,
+        }, { partial: true });
+        if (validationErrors.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture payload",
+                errors: validationErrors,
+            });
+        }
+
         const lecture = await Lecture.findById(lectureId);
         if(!lecture){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Lecture not found!"
             })
         }
@@ -305,11 +452,13 @@ export const editLecture = async (req,res) => {
         if(lectureDescription !== undefined) lecture.lectureDescription = lectureDescription;
         if(videoInfo?.videoUrl) {
             lecture.videoUrl = videoInfo.videoUrl;
-            console.log("🎥 Updated lecture videoUrl:", videoInfo.videoUrl);
         }
         if(videoInfo?.publicId) lecture.publicId = videoInfo.publicId;
         if(Array.isArray(supportMaterials)) {
             lecture.supportMaterials = supportMaterials;
+        }
+        if(Number.isInteger(lectureOrder) && lectureOrder > 0) {
+            lecture.lectureOrder = lectureOrder;
         }
         lecture.isPreviewFree = isPreviewFree;
 
@@ -321,13 +470,19 @@ export const editLecture = async (req,res) => {
             course.lectures.push(lecture._id);
             await course.save();
         };
-        return res.status(200).json({
+
+        if (course) {
+            await normalizeLectureOrder(courseId);
+        }
+
+        return sendSuccess(res, {
             lecture,
             message:"Lecture updated successfully."
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to edit lecture", { error: error.message, courseId: req.params.courseId, lectureId: req.params.lectureId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to edit lectures"
         })
     }
@@ -335,9 +490,18 @@ export const editLecture = async (req,res) => {
 export const removeLecture = async (req,res) => {
     try {
         const {lectureId} = req.params;
+        if (!isValidObjectId(lectureId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture id",
+                errors: ["lectureId must be a valid id"],
+            });
+        }
+        const course = await Course.findOne({ lectures: lectureId }).select("_id");
         const lecture = await Lecture.findByIdAndDelete(lectureId);
         if(!lecture){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Lecture not found!"
             });
         }
@@ -367,12 +531,17 @@ export const removeLecture = async (req,res) => {
             {$pull:{lectures:lectureId}} // Remove the lectures id from the lectures array
         );
 
-        return res.status(200).json({
+        if (course?._id) {
+            await normalizeLectureOrder(course._id);
+        }
+
+        return sendSuccess(res, {
             message:"Lecture removed successfully."
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to remove lecture", { error: error.message, lectureId: req.params.lectureId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to remove lecture"
         })
     }
@@ -380,19 +549,103 @@ export const removeLecture = async (req,res) => {
 export const getLectureById = async (req,res) => {
     try {
         const {lectureId} = req.params;
+        if (!isValidObjectId(lectureId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture id",
+                errors: ["lectureId must be a valid id"],
+            });
+        }
         const lecture = await Lecture.findById(lectureId);
         if(!lecture){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Lecture not found!"
             });
         }
-        return res.status(200).json({
+        return sendSuccess(res, {
             lecture
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to get lecture by id", { error: error.message, lectureId: req.params.lectureId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to get lecture by id"
+        })
+    }
+}
+
+export const reorderLecture = async (req,res) => {
+    try {
+        const { courseId, lectureId } = req.params;
+        const { direction } = req.body;
+        const userId = req.id;
+
+        if (!isValidObjectId(courseId) || !isValidObjectId(lectureId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid lecture or course id",
+                errors: ["courseId and lectureId must be valid ids"],
+            });
+        }
+
+        if (!["up", "down"].includes(direction)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid direction",
+                errors: ["direction must be either up or down"],
+            });
+        }
+
+        const course = await Course.findOne({ _id: courseId, creator: userId }).populate("lectures");
+        if (!course) {
+            return sendError(res, {
+                status: 404,
+                message: "Course not found"
+            });
+        }
+
+        const orderedLectures = getOrderedLectures(course.lectures);
+        const currentIndex = orderedLectures.findIndex((lecture) => lecture._id.toString() === lectureId);
+
+        if (currentIndex === -1) {
+            return sendError(res, {
+                status: 404,
+                message: "Lecture not found"
+            });
+        }
+
+        const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+        if (targetIndex < 0 || targetIndex >= orderedLectures.length) {
+            return sendError(res, {
+                status: 400,
+                message: "Lecture cannot be moved further"
+            });
+        }
+
+        [orderedLectures[currentIndex], orderedLectures[targetIndex]] = [orderedLectures[targetIndex], orderedLectures[currentIndex]];
+
+        await Promise.all(
+            orderedLectures.map((lecture, index) =>
+                Lecture.findByIdAndUpdate(lecture._id, { lectureOrder: index + 1 })
+            )
+        );
+
+        course.lectures = orderedLectures.map((lecture) => lecture._id);
+        await course.save();
+
+        return sendSuccess(res, {
+            message: "Lecture order updated successfully.",
+            lectures: orderedLectures.map((lecture, index) => ({
+                ...lecture.toObject(),
+                lectureOrder: index + 1,
+            }))
+        });
+    } catch (error) {
+        logger.error("Failed to reorder lecture", { error: error.message, courseId: req.params.courseId, lectureId: req.params.lectureId, userId: req.id });
+        return sendError(res, {
+            status: 500,
+            message:"Failed to reorder lecture"
         })
     }
 }
@@ -404,9 +657,26 @@ export const togglePublishCourse = async (req,res) => {
     try {
         const {courseId} = req.params;
         const {publish} = req.query; // true, false
+
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
+        if (!["true", "false"].includes(String(publish))) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid publish value",
+                errors: ["publish must be true or false"],
+            });
+        }
         const course = await Course.findById(courseId);
         if(!course){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Course not found!"
             });
         }
@@ -415,12 +685,13 @@ export const togglePublishCourse = async (req,res) => {
         await course.save();
 
         const statusMessage = course.isPublished ? "Published" : "Unpublished";
-        return res.status(200).json({
+        return sendSuccess(res, {
             message:`Course is ${statusMessage}`
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to update publish status", { error: error.message, courseId: req.params.courseId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to update status"
         })
     }
@@ -431,17 +702,27 @@ export const removeCourse = async (req,res) => {
         const {courseId} = req.params;
         const userId = req.id;
 
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
         // Find the course and verify ownership
         const course = await Course.findById(courseId);
         if(!course){
-            return res.status(404).json({
+            return sendError(res, {
+                status: 404,
                 message:"Course not found!"
             });
         }
 
         // Check if the user is the creator of the course
         if(course.creator.toString() !== userId){
-            return res.status(403).json({
+            return sendError(res, {
+                status: 403,
                 message:"You are not authorized to delete this course!"
             });
         }
@@ -476,12 +757,13 @@ export const removeCourse = async (req,res) => {
         // Delete the course
         await Course.findByIdAndDelete(courseId);
 
-        return res.status(200).json({
+        return sendSuccess(res, {
             message:"Course removed successfully."
         });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        logger.error("Failed to remove course", { error: error.message, courseId: req.params.courseId, userId: req.id });
+        return sendError(res, {
+            status: 500,
             message:"Failed to remove course"
         })
     }

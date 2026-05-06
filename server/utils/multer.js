@@ -1,6 +1,8 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { logger } from "./logger.js";
+import { sendError } from "./apiResponse.js";
 
 // Ensure uploads directory exists
 const uploadsDir = "uploads/";
@@ -11,7 +13,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log(`📁 Multer: Storing file in ${uploadsDir}`);
+    logger.debug("Storing uploaded file", { directory: uploadsDir, fileName: file.originalname });
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
@@ -20,26 +22,26 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname);
     const name = path.basename(file.originalname, ext);
     const filename = `${name}-${uniqueSuffix}${ext}`;
-    console.log(`📝 Multer: Generated filename: ${filename}`);
+    logger.debug("Generated upload filename", { originalName: file.originalname, filename });
     cb(null, filename);
   }
 });
 
 // File filter function
 const fileFilter = (req, file, cb) => {
-  console.log(`🔍 Multer: Processing file: ${file.originalname}`);
-  console.log(`🔧 Multer: MIME type: ${file.mimetype}`);
-  console.log(`📏 Multer: File size: ${file.size} bytes`);
+  logger.debug("Processing uploaded file", {
+    fileName: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+  });
 
   // Allow images
   if (file.mimetype.startsWith('image/')) {
-    console.log(`✅ Multer: Image file accepted`);
     return cb(null, true);
   }
   
   // Allow videos
   if (file.mimetype.startsWith('video/')) {
-    console.log(`✅ Multer: Video file accepted`);
     return cb(null, true);
   }
   
@@ -53,11 +55,10 @@ const fileFilter = (req, file, cb) => {
   ];
   
   if (allowedDocumentTypes.includes(file.mimetype)) {
-    console.log(`✅ Multer: Document file accepted (${file.mimetype})`);
     return cb(null, true);
   }
 
-  console.log(`❌ Multer: File type not allowed: ${file.mimetype}`);
+  logger.warn("Rejected unsupported upload type", { fileName: file.originalname, mimeType: file.mimetype });
   cb(new Error(`File type not allowed: ${file.mimetype}`), false);
 };
 
@@ -74,30 +75,34 @@ const upload = multer({
 // Error handling middleware
 const handleMulterError = (error, req, res, next) => {
   if (error instanceof multer.MulterError) {
-    console.error(`❌ Multer error: ${error.code}`);
+    logger.warn("Multer validation error", { code: error.code, message: error.message });
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        message: 'File too large. Maximum size is 100MB.'
+      return sendError(res, {
+        status: 400,
+        message: 'File too large. Maximum size is 100MB.',
+        errors: ['fileSize'],
       });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({
-        success: false,
-        message: 'Too many files. Only one file allowed.'
+      return sendError(res, {
+        status: 400,
+        message: 'Too many files. Only one file allowed.',
+        errors: ['files'],
       });
     }
-    return res.status(400).json({
-      success: false,
-      message: `Upload error: ${error.message}`
+    return sendError(res, {
+      status: 400,
+      message: `Upload error: ${error.message}`,
+      errors: [error.code || error.message],
     });
   }
   
   if (error) {
-    console.error(`❌ Upload error: ${error.message}`);
-    return res.status(400).json({
-      success: false,
-      message: error.message
+    logger.warn("Upload rejected", { message: error.message });
+    return sendError(res, {
+      status: 400,
+      message: error.message,
+      errors: [error.message],
     });
   }
   

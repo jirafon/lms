@@ -10,13 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useGetCourseProgressQuery } from "@/features/api/courseProgressApi";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
 import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Sparkles, Users, BookOpen } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import ReactPlayer from "react-player";
 import { useNavigate, useParams } from "react-router-dom";
-import TakeQuiz from "@/components/TakeQuiz";
-import axios from "axios";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 
@@ -60,37 +59,52 @@ const formatDate = (value) => {
 const CourseDetail = () => {
   const { t } = useTranslation();
   const params = useParams();
-  const { courseId, lectureId } = params;
+  const { courseId } = params;
   const navigate = useNavigate();
   const [showProgress, setShowProgress] = useState(false);
   const { data, isLoading, isError } =
     useGetCourseDetailWithStatusQuery(courseId);
-  const [quiz, setQuiz] = useState(null);
+  const { data: progressData } = useGetCourseProgressQuery(courseId, {
+    skip: !data?.purchased,
+  });
 
-  useEffect(() => {
-    if (data && data.course && data.course.lectures && data.course.lectures.length > 0) {
-      const firstLectureId = data.course.lectures[0]._id;
-      const token = localStorage.getItem('token'); // Retrieve token from localStorage or appropriate storage
-
-      axios
-        .get(`${import.meta.env.VITE_API_BASE_URL}/quiz/lecture/${firstLectureId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        .then((res) => setQuiz(res.data.quiz))
-        .catch(() => setQuiz(null));
-    }
-  }, [data]);
-
-  if (isLoading) return <h1>{t('common.loading')}</h1>;
-  if (isError) return <h1>{t('common.error')}</h1>;
-
-  const { course, purchased } = data;
+  const course = data?.course;
+  const purchased = data?.purchased;
   const firstLecture = course?.lectures?.[0];
   const courseTitle = course?.courseTitle || course?.title || "Curso";
   const courseSummary = course?.subTitle || course?.description || "";
-  console.log(purchased);
+  const progress = progressData?.progress;
+  const completedQuizzes = progress?.completedQuizzes || 0;
+  const totalLectures = course?.lectures?.length || 0;
+  const estimatedMinutes = totalLectures * 12;
+  const nextUnlockedLecture = useMemo(() => {
+    if (!course?.lectures?.length || !progress?.lectures) {
+      return firstLecture;
+    }
+
+    const progressByLectureId = new Map(
+      progress.lectures.map((entry) => [String(entry.lectureId?._id || entry.lectureId), entry])
+    );
+
+    return (
+      course.lectures.find((lecture, index) => {
+        if (index === 0) {
+          return !progressByLectureId.get(String(lecture._id))?.quizCompleted;
+        }
+
+        const previousLecture = course.lectures[index - 1];
+        return Boolean(progressByLectureId.get(String(previousLecture._id))?.quizCompleted) &&
+          !progressByLectureId.get(String(lecture._id))?.quizCompleted;
+      }) || firstLecture
+    );
+  }, [course?.lectures, progress?.lectures, firstLecture]);
+
+  const continueLabel = progress?.courseProgress
+    ? `Continuar desde ${nextUnlockedLecture?.lectureTitle || "tu progreso"}`
+    : "Comenzar curso";
+
+  if (isLoading) return <h1>{t('common.loading')}</h1>;
+  if (isError || !course) return <h1>{t('common.error')}</h1>;
 
   const handleContinueCourse = () => {
     if(purchased){
@@ -123,6 +137,10 @@ const CourseDetail = () => {
               <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
                 <BookOpen className="h-4 w-4 text-sky-300" />
                 {course?.lectures?.length || 0} capitulos
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
+                <BarChart3 className="h-4 w-4 text-violet-300" />
+                ~{estimatedMinutes} min estimados
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
                 <Users className="h-4 w-4 text-orange-300" />
@@ -177,7 +195,7 @@ const CourseDetail = () => {
                       )}
                     </div>
                     <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                      {idx + 1}
+                      {purchased && progress?.lectures?.find((entry) => String(entry.lectureId?._id || entry.lectureId) === String(lecture._id))?.quizCompleted ? "Aprobado" : idx + 1}
                     </span>
                   </div>
                 ))}
@@ -195,8 +213,7 @@ const CourseDetail = () => {
                       height="100%"
                       url={firstLecture?.videoUrl}
                       controls={true}
-                      onError={(e) => {
-                        console.error("Video error:", e);
+                      onError={() => {
                         toast.error("Video no disponible - Configuración de S3 requerida");
                       }}
                       fallback={
@@ -213,6 +230,16 @@ const CourseDetail = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {purchased && (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                      <p className="font-semibold">Siguiente acción recomendada</p>
+                      <p className="mt-1">
+                        {progress?.courseProgress === 100
+                          ? "Ya completaste el curso. Puedes revisar el contenido o descargar tu certificado."
+                          : `Continúa con ${nextUnlockedLecture?.lectureTitle || firstLecture?.lectureTitle}. Llevas ${completedQuizzes}/${totalLectures} quizzes aprobados.`}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                       Primer capitulo
@@ -230,7 +257,8 @@ const CourseDetail = () => {
                   <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
-                      <p className="mt-1 text-3xl font-semibold">${course?.coursePrice ?? 0}</p>
+                      <p className="mt-1 text-3xl font-semibold">US${course?.coursePrice ?? 0}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
                     </div>
                     <div className="text-right text-xs text-slate-400">
                       <p>{course?.courseLevel || "Beginner"}</p>
@@ -238,13 +266,6 @@ const CourseDetail = () => {
                     </div>
                   </div>
                 </div>
-
-                {quiz && (
-                  <div className="my-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <h3 className="mb-2 text-lg font-semibold text-slate-900">Quiz del capitulo</h3>
-                    <TakeQuiz quizId={quiz._id} />
-                  </div>
-                )}
 
                 {renderSupportMaterials(firstLecture)}
                 <Separator className="my-4" />
@@ -254,7 +275,7 @@ const CourseDetail = () => {
                 {purchased ? (
                   <>
                     <Button onClick={handleContinueCourse} className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800">
-                      Continuar curso
+                      {continueLabel}
                     </Button>
                     <Button
                       variant="outline"

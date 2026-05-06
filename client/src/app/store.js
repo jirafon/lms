@@ -20,8 +20,3 @@ export const appStore = configureStore({
         instructorApi.middleware // Added middleware for instructorApi
     )
 });
-
-const initializeApp = async () => {
-    await appStore.dispatch(authApi.endpoints.loadUser.initiate({},{forceRefetch:true}))
-}
-initializeApp();

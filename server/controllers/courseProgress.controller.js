@@ -3,11 +3,41 @@ import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { Quiz } from "../models/quiz.model.js";
 import { QuizAttempt } from "../models/quizAttempt.model.js";
+import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
+import { logger } from "../utils/logger.js";
+import { isValidObjectId, validateBooleanField, validateNumberField, validateObjectIdField } from "../utils/validators.js";
+
+const getOrderedLectures = (lectures = []) => {
+  return lectures
+    .map((lecture, index) => ({
+      lecture,
+      order: lecture.lectureOrder || index + 1,
+    }))
+    .sort((first, second) => first.order - second.order)
+    .map(({ lecture }) => lecture);
+};
 
 export const initializeCourseProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    const missingFields = getMissingFields({ courseId });
+    if (missingFields.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "courseId is required",
+        errors: missingFields,
+      });
+    }
+
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
 
     // Check if progress already exists
     const existingProgress = await CourseProgress.findOne({
@@ -16,8 +46,7 @@ export const initializeCourseProgress = async (req, res) => {
     });
 
     if (existingProgress) {
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         message: "Course progress already initialized",
         progress: existingProgress
       });
@@ -26,17 +55,19 @@ export const initializeCourseProgress = async (req, res) => {
     // Get course and lectures
     const course = await Course.findById(courseId).populate('lectures');
     if (!course) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Course not found"
       });
     }
+
+    const orderedLectures = getOrderedLectures(course.lectures);
 
     // Get quizzes for this course
     const quizzes = await Quiz.find({ courseId, isActive: true });
 
     // Initialize lecture progress
-    const lectureProgress = course.lectures.map(lecture => ({
+    const lectureProgress = orderedLectures.map(lecture => ({
       lectureId: lecture._id,
       watched: false,
       watchTime: 0,
@@ -50,22 +81,22 @@ export const initializeCourseProgress = async (req, res) => {
       userId,
       courseId,
       lectures: lectureProgress,
-      totalLectures: course.lectures.length,
+      totalLectures: orderedLectures.length,
       totalQuizzes: quizzes.length,
       courseProgress: 0
     });
 
     await progress.save();
 
-    return res.status(201).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 201,
       message: "Course progress initialized",
       progress
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error initializing course progress", { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error initializing course progress"
     });
   }
@@ -77,14 +108,40 @@ export const updateQuizProgress = async (req, res) => {
     const { quizId, score, passed } = req.body;
     const userId = req.id;
 
+    const missingFields = getMissingFields({ courseId, lectureId, score, passed });
+    if (missingFields.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "courseId, lectureId, score and passed are required",
+        errors: missingFields,
+      });
+    }
+
+    const validationErrors = [];
+    validateObjectIdField("courseId", courseId, validationErrors);
+    validateObjectIdField("lectureId", lectureId, validationErrors);
+    if (quizId !== undefined) {
+      validateObjectIdField("quizId", quizId, validationErrors);
+    }
+    validateNumberField("score", score, validationErrors, { min: 0, max: 100 });
+    validateBooleanField("passed", passed, validationErrors);
+
+    if (validationErrors.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid quiz progress payload",
+        errors: validationErrors,
+      });
+    }
+
     const progress = await CourseProgress.findOne({
       userId,
       courseId
     });
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Course progress not found"
       });
     }
@@ -95,8 +152,8 @@ export const updateQuizProgress = async (req, res) => {
     );
 
     if (lectureIndex === -1) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Lecture not found in course progress"
       });
     }
@@ -129,8 +186,7 @@ export const updateQuizProgress = async (req, res) => {
     progress.lastAccessedAt = new Date();
     await progress.save();
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Quiz progress updated",
       progress: {
         lectureProgress: progress.lectures[lectureIndex],
@@ -139,9 +195,9 @@ export const updateQuizProgress = async (req, res) => {
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error updating quiz progress", { error: error.message, courseId: req.params.courseId, lectureId: req.params.lectureId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error updating quiz progress"
     });
   }
@@ -152,6 +208,18 @@ export const checkLectureAccess = async (req, res) => {
     const { courseId, lectureId } = req.params;
     const userId = req.id;
 
+    const validationErrors = [];
+    validateObjectIdField("courseId", courseId, validationErrors);
+    validateObjectIdField("lectureId", lectureId, validationErrors);
+
+    if (validationErrors.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid lecture access payload",
+        errors: validationErrors,
+      });
+    }
+
     const progress = await CourseProgress.findOne({
       userId,
       courseId
@@ -161,31 +229,30 @@ export const checkLectureAccess = async (req, res) => {
     });
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Course progress not found"
       });
     }
 
     // Get all lectures for this course in order
     const course = await Course.findById(courseId).populate('lectures');
-    const sortedLectures = course.lectures.sort((a, b) => a.createdAt - b.createdAt);
+    const sortedLectures = getOrderedLectures(course.lectures);
     
     const targetLectureIndex = sortedLectures.findIndex(
       lecture => lecture._id.toString() === lectureId
     );
 
     if (targetLectureIndex === -1) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Lecture not found"
       });
     }
 
     // First lecture is always accessible
     if (targetLectureIndex === 0) {
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         hasAccess: true,
         message: "Access granted - first lecture"
       });
@@ -198,23 +265,21 @@ export const checkLectureAccess = async (req, res) => {
     );
 
     if (!previousLectureProgress || !previousLectureProgress.quizCompleted) {
-      return res.status(200).json({
-        success: true,
+      return sendSuccess(res, {
         hasAccess: false,
         message: "Debes completar y aprobar el quiz de la lectura anterior",
         requiredLecture: previousLecture.lectureTitle
       });
     }
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       hasAccess: true,
       message: "Access granted"
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error checking lecture access", { error: error.message, courseId: req.params.courseId, lectureId: req.params.lectureId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error checking lecture access"
     });
   }
@@ -227,11 +292,29 @@ export const updateLectureProgress = async (req, res) => {
     const { watchTime, completed } = req.body;
     const userId = req.id;
 
+    const validationErrors = [];
+    validateObjectIdField("courseId", courseId, validationErrors);
+    validateObjectIdField("lectureId", lectureId, validationErrors);
+    if (watchTime !== undefined) {
+      validateNumberField("watchTime", watchTime, validationErrors, { min: 0 });
+    }
+    if (completed !== undefined) {
+      validateBooleanField("completed", completed, validationErrors);
+    }
+
+    if (validationErrors.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid lecture progress payload",
+        errors: validationErrors,
+      });
+    }
+
     // First check if user has access to this lecture
     const accessCheck = await checkLectureAccessInternal(userId, courseId, lectureId);
     if (!accessCheck.hasAccess) {
-      return res.status(403).json({
-        success: false,
+      return sendError(res, {
+        status: 403,
         message: accessCheck.message,
         requiredLecture: accessCheck.requiredLecture
       });
@@ -243,8 +326,8 @@ export const updateLectureProgress = async (req, res) => {
     });
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Course progress not found"
       });
     }
@@ -255,8 +338,8 @@ export const updateLectureProgress = async (req, res) => {
     );
 
     if (lectureIndex === -1) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Lecture not found in course progress"
       });
     }
@@ -286,8 +369,7 @@ export const updateLectureProgress = async (req, res) => {
     progress.lastAccessedAt = new Date();
     await progress.save();
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       message: "Lecture progress updated",
       progress: {
         lectureProgress: progress.lectures[lectureIndex],
@@ -297,9 +379,9 @@ export const updateLectureProgress = async (req, res) => {
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error updating lecture progress", { error: error.message, courseId: req.params.courseId, lectureId: req.params.lectureId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error updating lecture progress"
     });
   }
@@ -319,7 +401,7 @@ const checkLectureAccessInternal = async (userId, courseId, lectureId) => {
 
     // Get all lectures for this course in order
     const course = await Course.findById(courseId).populate('lectures');
-    const sortedLectures = course.lectures.sort((a, b) => a.createdAt - b.createdAt);
+    const sortedLectures = getOrderedLectures(course.lectures);
     
     const targetLectureIndex = sortedLectures.findIndex(
       lecture => lecture._id.toString() === lectureId
@@ -350,7 +432,7 @@ const checkLectureAccessInternal = async (userId, courseId, lectureId) => {
 
     return { hasAccess: true, message: "Access granted" };
   } catch (error) {
-    console.log(error);
+    logger.error("Error checking lecture access internally", { error: error.message, courseId, lectureId, userId });
     return { hasAccess: false, message: "Error checking access" };
   }
 };
@@ -359,6 +441,14 @@ export const getCourseProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
 
     const progress = await CourseProgress.findOne({
       userId,
@@ -369,8 +459,8 @@ export const getCourseProgress = async (req, res) => {
     });
 
     if (!progress) {
-      return res.status(404).json({
-        success: false,
+      return sendError(res, {
+        status: 404,
         message: "Course progress not found"
       });
     }
@@ -392,17 +482,16 @@ export const getCourseProgress = async (req, res) => {
       totalAttempts: quizAttempts.length
     };
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       progress: {
         ...progress.toObject(),
         quizStats
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching course progress", { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching course progress"
     });
   }
@@ -434,14 +523,13 @@ export const getUserProgress = async (req, res) => {
       completedAt: progress.completedAt
     }));
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       progress: progressSummary
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching user progress", { error: error.message, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching user progress"
     });
   }
@@ -452,6 +540,14 @@ export const getCourseAnalytics = async (req, res) => {
     const { courseId } = req.params;
     const userId = req.id;
 
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
+
     // Check if user is the course creator
     const course = await Course.findOne({
       _id: courseId,
@@ -459,8 +555,8 @@ export const getCourseAnalytics = async (req, res) => {
     });
 
     if (!course) {
-      return res.status(403).json({
-        success: false,
+      return sendError(res, {
+        status: 403,
         message: "You don't have permission to view this course's analytics"
       });
     }
@@ -513,17 +609,16 @@ export const getCourseAnalytics = async (req, res) => {
       };
     });
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
       analytics: {
         ...analytics,
         lectureAnalytics
       }
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Error fetching course analytics", { error: error.message, courseId: req.params.courseId, userId: req.id });
+    return sendError(res, {
+      status: 500,
       message: "Error fetching course analytics"
     });
   }

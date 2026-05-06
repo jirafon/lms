@@ -1,3 +1,6 @@
+import { sendError, sendSuccess } from "../utils/apiResponse.js";
+import { logger } from "../utils/logger.js";
+
 export const getInstructorMetrics = async (req, res) => {
   try {
     // Mock data for instructor metrics
@@ -14,9 +17,9 @@ export const getInstructorMetrics = async (req, res) => {
       ],
     };
 
-    res.status(200).json(metrics);
+    return sendSuccess(res, { metrics });
   } catch (error) {
-    console.error('Error fetching instructor metrics:', error);
-    res.status(500).json({ message: 'Failed to fetch instructor metrics' });
+    logger.error('Failed to fetch instructor metrics', { error: error.message, userId: req.id });
+    return sendError(res, { status: 500, message: 'Failed to fetch instructor metrics' });
   }
 };

@@ -1,12 +1,9 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { prepareAuthHeaders } from './prepareAuthHeaders';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createAuthBaseQuery } from './createAuthBaseQuery';
 
 export const instructorApi = createApi({
   reducerPath: 'instructorApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api',
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery('/api'),
   endpoints: (builder) => ({
     getInstructorMetrics: builder.query({
       query: () => 'instructor/metrics',

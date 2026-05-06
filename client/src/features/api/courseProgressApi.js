@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { prepareAuthHeaders } from "./prepareAuthHeaders";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { createAuthBaseQuery } from "./createAuthBaseQuery";
 // Opción 1: importar y luego llamar a .config()
 
 ///const COURSE_PROGRESS_API = "http://localhost:3010/api/v1/progress";
@@ -10,12 +10,15 @@ const COURSE_PROGRESS_API = import.meta.env.VITE_API_BASE_URL
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
   tagTypes: ["CourseProgress"],
-  baseQuery: fetchBaseQuery({
-    baseUrl: COURSE_PROGRESS_API,
-    credentials: "include",
-    prepareHeaders: prepareAuthHeaders,
-  }),
+  baseQuery: createAuthBaseQuery(COURSE_PROGRESS_API),
   endpoints: (builder) => ({
+    getUserProgress: builder.query({
+      query: () => ({
+        url: "/user",
+        method: "GET",
+      }),
+      providesTags: ["CourseProgress"],
+    }),
     getCourseProgress: builder.query({
       query: (courseId) => ({
         url: `/course/${courseId}`,
@@ -47,27 +50,12 @@ export const courseProgressApi = createApi({
         method: "GET",
       }),
     }),
-    completeCourse: builder.mutation({
-        query:(courseId) => ({
-            url:`/${courseId}/complete`,
-            method:"POST"
-        }),
-        invalidatesTags: ["CourseProgress"],
-    }),
-    inCompleteCourse: builder.mutation({
-        query:(courseId) => ({
-            url:`/${courseId}/incomplete`,
-            method:"POST"
-        }),
-        invalidatesTags: ["CourseProgress"],
-    }),
   }),
 });
 export const {
+useGetUserProgressQuery,
 useGetCourseProgressQuery,
 useUpdateLectureProgressMutation,
 useUpdateQuizProgressMutation,
 useCheckLectureAccessQuery,
-useCompleteCourseMutation,
-useInCompleteCourseMutation
 } = courseProgressApi;

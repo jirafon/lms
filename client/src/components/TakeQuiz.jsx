@@ -89,7 +89,11 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
       }
       
       onQuizCompleted && onQuizCompleted(result.result);
-      toast.success(t('quiz.quiz_submitted_successfully'));
+      toast[result.result.passed ? 'success' : 'error'](
+        result.result.passed
+          ? t('quiz.quiz_submitted_successfully')
+          : `Obtuviste ${result.result.percentage}%. Revisa las respuestas y vuelve a intentarlo.`
+      );
     } catch (err) {
       setError(err.data?.message || 'No se pudo enviar el quiz');
       toast.error(t('quiz.error_submitting_quiz') + ': ' + (err.data?.message || t('messages.unknown_error')));
@@ -110,6 +114,15 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
   if (error) return <div className="text-red-500">{error}</div>;
   if (!quiz) return null;
 
+  const unansweredQuestions = answers.filter((answer, index) => {
+    const question = quiz.questions[index];
+    if (question.type === 'short_answer') {
+      return !answer.textAnswer.trim();
+    }
+
+    return answer.selectedOptions.length === 0;
+  }).length;
+
   if (showResults) {
     return (
       <QuizResults 
@@ -126,6 +139,9 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
       <CardHeader>
         <CardTitle>{quiz.title}</CardTitle>
         <p className="text-sm text-gray-500">{quiz.description}</p>
+        <p className="text-xs text-gray-500">
+          Debes responder todas las preguntas. Puntaje mínimo: {quiz.passingScore || 70}%.
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-8">
@@ -170,7 +186,12 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
               )}
             </div>
           ))}
-          <Button type="submit" disabled={submitting} className="w-full">
+          {unansweredQuestions > 0 && (
+            <p className="text-sm text-amber-600">
+              Te faltan {unansweredQuestions} pregunta(s) por responder antes de enviar.
+            </p>
+          )}
+          <Button type="submit" disabled={submitting || unansweredQuestions > 0} className="w-full">
             {submitting ? t('quiz.submitting') : t('quiz.submit_quiz')}
           </Button>
         </form>

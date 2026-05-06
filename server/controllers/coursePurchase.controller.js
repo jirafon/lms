@@ -1,48 +1,88 @@
 import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
+import { logger } from "../utils/logger.js";
+import { sendError, sendSuccess, getMissingFields } from "../utils/apiResponse.js";
+import { isValidObjectId } from "../utils/validators.js";
 // Payment providers are disabled for now; keep only data queries below.
+
+const getOrderedLectures = (lectures = []) => {
+  return lectures
+    .map((lecture, index) => ({
+      lecture,
+      order: lecture.lectureOrder || index + 1,
+    }))
+    .sort((first, second) => first.order - second.order)
+    .map(({ lecture }) => lecture);
+};
 
 export const createCheckoutSession = async (req, res) => {
   try {
     const { courseId } = req.body;
 
-    const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ message: "Course not found!" });
+    const missingFields = getMissingFields({ courseId });
+    if (missingFields.length > 0) {
+      return sendError(res, {
+        status: 400,
+        message: "courseId is required",
+        errors: missingFields,
+      });
+    }
 
-    return res.status(501).json({
-      success: false,
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return sendError(res, { status: 404, message: "Course not found!" });
+    }
+
+    return sendError(res, {
+      status: 501,
       message: "Payments are disabled for now. No provider configured.",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
+    logger.error("Failed to create checkout session", { error: error.message });
+    return sendError(res, {
+      status: 500,
       message: "Payments are disabled for now.",
     });
   }
 };
 
 export const capturePayPalPaymentHandler = async (_req, res) => {
-  return res.status(501).json({
-    success: false,
+  return sendError(res, {
+    status: 501,
     message: "Payments are disabled for now.",
   });
 };
 
 export const stripeWebhook = async (_req, res) => {
-  console.log("Stripe webhook received but payments are disabled.");
-  return res.status(200).send();
+  logger.info("Stripe webhook received but payments are disabled.");
+  return res.sendStatus(200);
 };
 
 export const paypalWebhook = async (_req, res) => {
-  console.log("PayPal webhook received but payments are disabled.");
-  return res.status(200).send();
+  logger.info("PayPal webhook received but payments are disabled.");
+  return res.sendStatus(200);
 };
 
 export const getCourseDetailWithPurchaseStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.id;
+
+    if (!isValidObjectId(courseId)) {
+      return sendError(res, {
+        status: 400,
+        message: "Invalid course id",
+        errors: ["courseId must be a valid id"],
+      });
+    }
 
     const course = await Course.findById(courseId)
       .populate({ path: "creator" })
@@ -53,19 +93,20 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       courseId,
       status: 'completed'
     });
-    console.log(purchased);
 
     if (!course) {
-      return res.status(404).json({ message: "course not found!" });
+      return sendError(res, { status: 404, message: "course not found!" });
     }
 
-    return res.status(200).json({
+    course.lectures = getOrderedLectures(course.lectures);
+
+    return sendSuccess(res, {
       course,
       purchased: !!purchased, // true if purchased, false otherwise
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Internal server error" });
+    logger.error("Failed to get course purchase status", { error: error.message, courseId: req.params.courseId });
+    return sendError(res, { status: 500, message: "Internal server error" });
   }
 };
 
@@ -76,24 +117,18 @@ export const getAllPurchasedCourse = async (req, res) => {
       userId,
       status: "completed",
     }).populate("courseId");
-    
-    if (!purchasedCourse) {
-      return res.status(200).json({
-        purchasedCourse: [],
-      });
-    }
-    return res.status(200).json({
-      purchasedCourse,
+
+    return sendSuccess(res, {
+      purchasedCourse: purchasedCourse.filter((purchase) => purchase.courseId),
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Internal server error" });
+    logger.error("Failed to get purchased courses", { error: error.message, userId: req.id });
+    return sendError(res, { status: 500, message: "Internal server error" });
   }
 };
 
 export const getPaymentMethods = async (_req, res) => {
-  return res.status(200).json({
-    success: true,
+  return sendSuccess(res, {
     paymentMethods: [],
     message: "Payments are disabled for now.",
   });
