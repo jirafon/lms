@@ -16,13 +16,14 @@ export const ProtectedRoute = ({children}) => {
 }
 export const AuthenticatedUser = ({children}) => {
     const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
+    const userRole = user?.lmsrole || user?.role;
 
     if(!authChecked){
         return null;
     }
 
     if(isAuthenticated){
-        return <Navigate to={user?.role === "instructor" ? "/admin" : "/"}/>
+        return <Navigate to={userRole === "instructor" ? "/admin" : "/my-learning"}/>
     }
 
     return children;
@@ -30,6 +31,7 @@ export const AuthenticatedUser = ({children}) => {
 
 export const AdminRoute = ({children}) => {
     const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
+    const userRole = user?.lmsrole || user?.role;
 
     if(!authChecked){
         return null;
@@ -39,7 +41,7 @@ export const AdminRoute = ({children}) => {
         return <Navigate to="/login"/>
     }
 
-    if(user?.role !== "instructor"){
+    if(userRole !== "instructor"){
         return <Navigate to="/my-learning"/>
     }
 

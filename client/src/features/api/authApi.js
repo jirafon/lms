@@ -33,6 +33,7 @@ export const authApi = createApi({
                     }
                     dispatch(userLoggedIn({user:result.data.user}));
                 } catch {
+                    return;
                 }
             }
         }),
@@ -61,6 +62,7 @@ export const authApi = createApi({
                     localStorage.removeItem("token");
                     dispatch(userLoggedOut());
                 } catch {
+                    return;
                 }
             }
         }),

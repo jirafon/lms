@@ -99,7 +99,7 @@ const userSchema = new mongoose.Schema({
     },
 
     investigador: { type: String, default: "No" }, // o Boolean si prefieres
- role: {
+    lmsrole: {
       type: String,
       enum: ["instructor", "student"],
       default: "student",

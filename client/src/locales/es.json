@@ -42,6 +42,9 @@
     "my_account": "Mi Cuenta",
     "menu": "Menú"
   },
+  "student": {
+    "no_enrolled_courses": "No estás inscrito en ningún curso."
+  },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
@@ -305,18 +308,23 @@
     "payment_method": "Método de Pago",
     "credit_card": "Tarjeta de Crédito/Débito",
     "paypal": "PayPal",
+    "flow": "Flow",
     "stripe": "Stripe",
     "checkout": "Pagar",
     "purchase": "Comprar",
+    "purchase_course": "Comprar curso",
     "buy_now": "Comprar Ahora",
     "payment_successful": "Pago exitoso",
     "payment_failed": "Pago fallido",
-    "processing_payment": "Procesando pago..."
+    "processing_payment": "Procesando pago...",
+    "invalid_checkout_response": "Respuesta inválida del proveedor de pago.",
+    "checkout_creation_failed": "No se pudo crear la sesión de pago"
   },
   "admin": {
     "admin": "Administrador",
     "admin_dashboard": "Panel de Administración",
     "manage_courses": "Gestionar Cursos",
+    "manage_students": "Gestionar Estudiantes",
     "manage_lectures": "Gestionar Lecciones",
     "manage_quizzes": "Gestionar Quizzes",
     "manage_users": "Gestionar Usuarios",

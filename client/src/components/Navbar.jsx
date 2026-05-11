@@ -15,9 +15,7 @@ import DarkMode from "@/DarkMode";
 import LanguageSelector from "./LanguageSelector";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -32,6 +30,7 @@ import { useTranslation } from "react-i18next";
 const Navbar = () => {
   const { t } = useTranslation();
   const { user } = useSelector((store) => store.auth);
+  const userRole = user?.lmsrole || user?.role;
   const [logoutUser, { data, isSuccess }] = useLogoutUserMutation();
   const navigate = useNavigate();
   
@@ -77,10 +76,15 @@ const Navbar = () => {
                 <DropdownMenuLabel>{t('navigation.my_account')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  {user?.role === "instructor" && (
-                    <DropdownMenuItem>
-                      <Link to="/admin/course">{t('admin.manage_courses')}</Link>
-                    </DropdownMenuItem>
+                  {userRole === "instructor" && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/admin/course">{t('admin.manage_courses')}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/admin/students">{t('admin.manage_students')}</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem>
                     <Link to="my-learning">{t('navigation.my_learning')}</Link>
@@ -98,9 +102,6 @@ const Navbar = () => {
             <div className="flex items-center gap-4">
               <Link to="/login">
                 <Button variant="outline">{t('navigation.login')}</Button>
-              </Link>
-              <Link to="/register">
-                <Button>{t('navigation.register')}</Button>
               </Link>
             </div>
           )}
@@ -132,8 +133,11 @@ const Navbar = () => {
               <nav className="flex flex-col space-y-4">
                 {user ? (
                   <>
-                    {user?.role === "instructor" && (
-                      <Link to="/admin/course">{t('admin.manage_courses')}</Link>
+                    {userRole === "instructor" && (
+                      <>
+                        <Link to="/admin/course">{t('admin.manage_courses')}</Link>
+                        <Link to="/admin/students">{t('admin.manage_students')}</Link>
+                      </>
                     )}
                     <Link to="/my-learning">{t('navigation.my_learning')}</Link>
                     <Link to="/profile">{t('navigation.profile')}</Link>
@@ -142,7 +146,6 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Link to="/login">{t('navigation.login')}</Link>
-                    <Link to="/register">{t('navigation.register')}</Link>
                   </>
                 )}
               </nav>

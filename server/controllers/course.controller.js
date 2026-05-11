@@ -1,10 +1,15 @@
 import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { Lecture } from "../models/lecture.model.js";
+import { User } from "../models/user.model.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { uploadMedia, deleteMediaFromS3, extractS3KeyFromUrl, deleteVideoFromS3 } from "../utils/s3.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { logger } from "../utils/logger.js";
+import { sendCourseInvitationEmail } from "../utils/mailer.js";
 import { isValidObjectId, validateCoursePayload, validateLecturePayload } from "../utils/validators.js";
+import mongoose from "mongoose";
 
 const getOrderedLectures = (lectures = []) => {
     return lectures
@@ -37,6 +42,107 @@ const normalizeLectureOrder = async (courseId) => {
         ...lecture.toObject(),
         lectureOrder: index + 1,
     }));
+};
+
+const getFrontendBaseUrl = () => {
+    return (
+        process.env.CLIENT_URL ||
+        process.env.CLIENT_ORIGIN ||
+        process.env.FRONTEND_URL ||
+        process.env.FRONTEND_ORIGIN ||
+        process.env.VITE_CLIENT_URL ||
+        "http://localhost:5173"
+    );
+};
+
+const createInvitationUser = async (email) => {
+    const localPart = email.split("@")[0] || "student";
+    const normalizedName = localPart
+        .replace(/[._-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (character) => character.toUpperCase()) || "Student";
+    const temporaryPassword = crypto.randomBytes(24).toString("hex");
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+    const invitationToken = crypto.randomBytes(32).toString("hex");
+    const invitationTokenHash = crypto.createHash("sha256").update(invitationToken).digest("hex");
+    const resetPasswordExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const student = await User.create({
+        name: normalizedName,
+        email,
+        password: hashedPassword,
+        lmsrole: "student",
+        resetPasswordToken: invitationTokenHash,
+        resetPasswordExpiresAt,
+    });
+
+    return {
+        student,
+        invitationToken,
+    };
+};
+
+const getClientNameFromDocument = (clientDocument) => {
+    if (!clientDocument) {
+        return "N/A";
+    }
+
+    return (
+        clientDocument.nombreempresa ||
+        clientDocument.nombrecliente ||
+        clientDocument.clientName ||
+        clientDocument.nombreCliente ||
+        clientDocument.nombre ||
+        clientDocument.name ||
+        clientDocument.razonSocial ||
+        clientDocument.companyName ||
+        "N/A"
+    );
+};
+
+const getClientNamesByContractIds = async (contractIds = []) => {
+    const normalizedContractIds = Array.from(
+        new Set(
+            contractIds
+                .map((contractId) => String(contractId || "").trim())
+                .filter(Boolean)
+        )
+    );
+
+    if (!normalizedContractIds.length) {
+        return new Map();
+    }
+
+    const clientsCollection = mongoose.connection?.collection("clients");
+    if (!clientsCollection) {
+        logger.warn("Clients collection is not available while resolving client names");
+        return new Map();
+    }
+
+    const clientDocuments = await clientsCollection
+        .find({
+            $or: [
+                { idcontrato: { $in: normalizedContractIds } },
+                {
+                    _id: {
+                        $in: normalizedContractIds
+                            .filter((contractId) => mongoose.isValidObjectId(contractId))
+                            .map((contractId) => new mongoose.Types.ObjectId(contractId)),
+                    },
+                },
+            ],
+        })
+        .project({ idcontrato: 1, nombreempresa: 1, nombrecliente: 1, clientName: 1, nombreCliente: 1, nombre: 1, name: 1, razonSocial: 1, companyName: 1 })
+        .toArray();
+
+    return new Map(
+        clientDocuments.flatMap((clientDocument) => {
+            const resolvedName = getClientNameFromDocument(clientDocument);
+            const keys = [String(clientDocument.idcontrato || "").trim(), String(clientDocument._id || "").trim()].filter(Boolean);
+
+            return keys.map((key) => [key, resolvedName]);
+        })
+    );
 };
 
 export const createCourse = async (req,res) => {
@@ -186,6 +292,10 @@ export const getCourseStudents = async (req, res) => {
             select: "name email idcontrato idcompany",
         });
 
+        const clientNameByContractId = await getClientNamesByContractIds(
+            purchases.map((purchase) => purchase.userId?.idcontrato)
+        );
+
         const uniqueStudents = new Map();
 
         for (const purchase of purchases) {
@@ -199,7 +309,7 @@ export const getCourseStudents = async (req, res) => {
                 name: student.name || "N/A",
                 email: student.email || "N/A",
                 idcontrato: student.idcontrato || "N/A",
-                clientName: student.idcompany || "N/A",
+                clientName: clientNameByContractId.get(String(student.idcontrato || "").trim()) || student.idcompany || "N/A",
             });
         }
 
@@ -212,6 +322,437 @@ export const getCourseStudents = async (req, res) => {
         return sendError(res, {
             status: 500,
             message: "Failed to load course students"
+        });
+    }
+}
+
+export const getStudentsDashboard = async (req, res) => {
+    try {
+        const userId = req.id;
+        const requestedContractId = String(req.query.idcontrato || "").trim();
+
+        const creatorCourses = await Course.find({ creator: userId }).select("_id courseTitle");
+        const courseIds = creatorCourses.map((course) => course._id);
+
+        if (courseIds.length === 0) {
+            return sendSuccess(res, {
+                summary: {
+                    totalStudents: 0,
+                    totalContracts: 0,
+                    totalEnrollments: 0,
+                    selectedContract: requestedContractId || null,
+                },
+                contractOptions: [],
+                students: [],
+            });
+        }
+
+        const courseTitleById = new Map(
+            creatorCourses.map((course) => [String(course._id), course.courseTitle || "Untitled course"])
+        );
+
+        const purchases = await CoursePurchase.find({
+            courseId: { $in: courseIds },
+            status: "completed",
+        })
+            .populate({
+                path: "userId",
+                select: "name email idcontrato idcompany",
+            })
+            .select("courseId userId createdAt");
+
+        const clientNameByContractId = await getClientNamesByContractIds(
+            purchases.map((purchase) => purchase.userId?.idcontrato)
+        );
+
+        const contractOptions = new Set();
+        const uniqueStudents = new Map();
+
+        for (const purchase of purchases) {
+            const student = purchase.userId;
+            if (!student) {
+                continue;
+            }
+
+            const contractId = String(student.idcontrato || "").trim();
+            if (contractId) {
+                contractOptions.add(contractId);
+            }
+
+            if (requestedContractId && contractId !== requestedContractId) {
+                continue;
+            }
+
+            const studentId = String(student._id);
+            const existingStudent = uniqueStudents.get(studentId) || {
+                id: student._id,
+                name: student.name || "N/A",
+                email: student.email || "N/A",
+                idcontrato: contractId || "N/A",
+                clientName: clientNameByContractId.get(contractId) || student.idcompany || "N/A",
+                totalCourses: 0,
+                enrolledCourses: [],
+                lastPurchaseAt: purchase.createdAt,
+            };
+
+            existingStudent.totalCourses += 1;
+            existingStudent.enrolledCourses.push({
+                id: purchase.courseId,
+                title: courseTitleById.get(String(purchase.courseId)) || "Untitled course",
+            });
+
+            if (!existingStudent.lastPurchaseAt || purchase.createdAt > existingStudent.lastPurchaseAt) {
+                existingStudent.lastPurchaseAt = purchase.createdAt;
+            }
+
+            uniqueStudents.set(studentId, existingStudent);
+        }
+
+        const students = Array.from(uniqueStudents.values()).sort((first, second) => {
+            return String(first.name).localeCompare(String(second.name));
+        });
+
+        return sendSuccess(res, {
+            summary: {
+                totalStudents: students.length,
+                totalContracts: new Set(students.map((student) => student.idcontrato).filter((value) => value && value !== "N/A")).size,
+                totalEnrollments: students.reduce((total, student) => total + student.totalCourses, 0),
+                selectedContract: requestedContractId || null,
+            },
+            contractOptions: Array.from(contractOptions).sort((first, second) => first.localeCompare(second)),
+            students,
+        });
+    } catch (error) {
+        logger.error("Failed to load students dashboard", { error: error.message, userId: req.id, idcontrato: req.query?.idcontrato });
+        return sendError(res, {
+            status: 500,
+            message: "Failed to load students dashboard"
+        });
+    }
+}
+
+export const enrollStudentByEmail = async (req, res) => {
+    try {
+        const userId = req.id;
+        const courseId = String(req.body.courseId || "").trim();
+        const email = String(req.body.email || "").trim().toLowerCase();
+        const locale = req.body.locale;
+
+        const missingFields = getMissingFields({ courseId, email });
+        if (missingFields.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Course and email are required.",
+                errors: missingFields,
+            });
+        }
+
+        if (!isValidObjectId(courseId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid course id",
+                errors: ["courseId must be a valid id"],
+            });
+        }
+
+        const course = await Course.findOne({ _id: courseId, creator: userId }).select("_id courseTitle coursePrice");
+        if (!course) {
+            return sendError(res, {
+                status: 404,
+                message: "Course not found",
+            });
+        }
+
+        let student = await User.findOne({ email }).select("_id name email enrolledCourses resetPasswordToken resetPasswordExpiresAt");
+        let invitationUrl;
+        let invitedNewStudent = false;
+
+        if (!student) {
+            const invitationPayload = await createInvitationUser(email);
+            student = invitationPayload.student;
+            invitedNewStudent = true;
+            invitationUrl = `${getFrontendBaseUrl().replace(/\/$/, "")}/reset-password/${invitationPayload.invitationToken}`;
+        }
+
+        const existingPurchase = await CoursePurchase.findOne({
+            courseId,
+            userId: student._id,
+            status: "completed",
+        }).select("_id");
+
+        if (existingPurchase) {
+            return sendError(res, {
+                status: 409,
+                message: "Student is already enrolled in this course",
+            });
+        }
+
+        const paymentId = `manual-${courseId}-${student._id}-${Date.now()}`;
+
+        await CoursePurchase.create({
+            courseId,
+            userId: student._id,
+            amount: Number(course.coursePrice) || 0,
+            status: "completed",
+            paymentId,
+            paymentMethod: "manual",
+            paymentDetails: {
+                source: "admin-manual-enrollment",
+                enrolledBy: userId,
+                email,
+            },
+        });
+
+        await Promise.all([
+            User.updateOne(
+                { _id: student._id },
+                { $addToSet: { enrolledCourses: course._id } }
+            ),
+            Course.updateOne(
+                { _id: course._id },
+                { $addToSet: { enrolledStudents: student._id } }
+            ),
+        ]);
+
+        if (invitedNewStudent && invitationUrl) {
+            const emailSent = await sendCourseInvitationEmail({
+                to: student.email,
+                name: student.name,
+                invitationUrl,
+                courseTitle: course.courseTitle,
+                locale,
+            });
+
+            if (!emailSent) {
+                logger.warn("Course invitation email not sent; mailer unavailable", {
+                    userId: student._id,
+                    email: student.email,
+                    courseId: course._id,
+                });
+            }
+        }
+
+        return sendSuccess(res, {
+            status: 201,
+            message: invitedNewStudent
+                ? "Student created, enrolled successfully, and invitation email prepared."
+                : "Student enrolled successfully.",
+            enrollment: {
+                courseId: course._id,
+                courseTitle: course.courseTitle,
+                studentId: student._id,
+                studentName: student.name || student.email,
+                studentEmail: student.email,
+            },
+            ...(invitationUrl && process.env.NODE_ENV !== "production" ? { invitationUrl } : {}),
+        });
+    } catch (error) {
+        logger.error("Failed to enroll student by email", {
+            error: error.message,
+            userId: req.id,
+            courseId: req.body?.courseId,
+            email: req.body?.email,
+        });
+        return sendError(res, {
+            status: 500,
+            message: "Failed to enroll student",
+        });
+    }
+}
+
+export const unenrollStudentFromCourse = async (req, res) => {
+    try {
+        const userId = req.id;
+        const courseId = String(req.body.courseId || "").trim();
+        const studentId = String(req.body.studentId || "").trim();
+
+        const missingFields = getMissingFields({ courseId, studentId });
+        if (missingFields.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Course and student are required.",
+                errors: missingFields,
+            });
+        }
+
+        if (!isValidObjectId(courseId) || !isValidObjectId(studentId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid identifiers",
+                errors: ["courseId and studentId must be valid ids"],
+            });
+        }
+
+        const course = await Course.findOne({ _id: courseId, creator: userId }).select("_id courseTitle");
+        if (!course) {
+            return sendError(res, {
+                status: 404,
+                message: "Course not found",
+            });
+        }
+
+        const student = await User.findById(studentId).select("_id name email");
+        if (!student) {
+            return sendError(res, {
+                status: 404,
+                message: "Student not found",
+            });
+        }
+
+        const updateResult = await CoursePurchase.updateMany(
+            {
+                courseId,
+                userId: studentId,
+                status: "completed",
+            },
+            {
+                $set: {
+                    status: "cancelled",
+                    paymentDetails: {
+                        revokedBy: userId,
+                        revokedAt: new Date().toISOString(),
+                        source: "admin-manual-unenrollment",
+                    },
+                },
+            }
+        );
+
+        if (!updateResult.modifiedCount) {
+            return sendError(res, {
+                status: 404,
+                message: "Enrollment not found for this student and course",
+            });
+        }
+
+        await Promise.all([
+            User.updateOne(
+                { _id: studentId },
+                { $pull: { enrolledCourses: courseId } }
+            ),
+            Course.updateOne(
+                { _id: courseId },
+                { $pull: { enrolledStudents: studentId } }
+            ),
+        ]);
+
+        return sendSuccess(res, {
+            message: "Enrollment removed successfully.",
+            enrollment: {
+                courseId: course._id,
+                courseTitle: course.courseTitle,
+                studentId: student._id,
+                studentName: student.name || student.email,
+                studentEmail: student.email,
+            },
+        });
+    } catch (error) {
+        logger.error("Failed to remove enrollment", {
+            error: error.message,
+            userId: req.id,
+            courseId: req.body?.courseId,
+            studentId: req.body?.studentId,
+        });
+        return sendError(res, {
+            status: 500,
+            message: "Failed to remove enrollment",
+        });
+    }
+}
+
+export const removeStudentFromDashboard = async (req, res) => {
+    try {
+        const userId = req.id;
+        const studentId = String(req.body.studentId || "").trim();
+
+        const missingFields = getMissingFields({ studentId });
+        if (missingFields.length > 0) {
+            return sendError(res, {
+                status: 400,
+                message: "Student is required.",
+                errors: missingFields,
+            });
+        }
+
+        if (!isValidObjectId(studentId)) {
+            return sendError(res, {
+                status: 400,
+                message: "Invalid student id",
+                errors: ["studentId must be a valid id"],
+            });
+        }
+
+        const creatorCourses = await Course.find({ creator: userId }).select("_id");
+        const courseIds = creatorCourses.map((course) => course._id);
+
+        if (!courseIds.length) {
+            return sendError(res, {
+                status: 404,
+                message: "No instructor courses found",
+            });
+        }
+
+        const student = await User.findById(studentId).select("_id name email");
+        if (!student) {
+            return sendError(res, {
+                status: 404,
+                message: "Student not found",
+            });
+        }
+
+        const updateResult = await CoursePurchase.updateMany(
+            {
+                courseId: { $in: courseIds },
+                userId: studentId,
+                status: "completed",
+            },
+            {
+                $set: {
+                    status: "cancelled",
+                    paymentDetails: {
+                        revokedBy: userId,
+                        revokedAt: new Date().toISOString(),
+                        source: "admin-student-removal",
+                    },
+                },
+            }
+        );
+
+        if (!updateResult.modifiedCount) {
+            return sendError(res, {
+                status: 404,
+                message: "Student has no active enrollments in your courses",
+            });
+        }
+
+        await Promise.all([
+            User.updateOne(
+                { _id: studentId },
+                { $pull: { enrolledCourses: { $in: courseIds } } }
+            ),
+            Course.updateMany(
+                { _id: { $in: courseIds } },
+                { $pull: { enrolledStudents: studentId } }
+            ),
+        ]);
+
+        return sendSuccess(res, {
+            message: "Student removed from your courses successfully.",
+            student: {
+                studentId: student._id,
+                studentName: student.name || student.email,
+                studentEmail: student.email,
+            },
+            removedEnrollments: updateResult.modifiedCount,
+        });
+    } catch (error) {
+        logger.error("Failed to remove student from dashboard", {
+            error: error.message,
+            userId: req.id,
+            studentId: req.body?.studentId,
+        });
+        return sendError(res, {
+            status: 500,
+            message: "Failed to remove student",
         });
     }
 }

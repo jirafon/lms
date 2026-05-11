@@ -20,7 +20,7 @@ const AddCourse = () => {
   const [courseTitle, setCourseTitle] = useState("");
   const [category, setCategory] = useState("");
 
-  const [createCourse, { data, isLoading, error, isSuccess }] =
+  const [createCourse, { data, isLoading, isSuccess }] =
     useCreateCourseMutation();
 
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const AddCourse = () => {
         toast.success(data?.message || "Course created.");
         navigate("/admin/course");
     }
-  },[isSuccess, error])
+  },[isSuccess, data?.message, navigate])
 
   return (
     <div className="flex-1 mx-10">

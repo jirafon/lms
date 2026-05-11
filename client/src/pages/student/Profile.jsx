@@ -52,21 +52,22 @@ const Profile = () => {
 
   useEffect(() => {
     refetch();
-  }, []);
+  }, [refetch]);
 
   useEffect(() => {
     if (isSuccess) {
       refetch();
-      toast.success(data.message || "Profile updated.");
+      toast.success(updateUserData?.message || "Profile updated.");
     }
     if (isError) {
       toast.error(error.message || "Failed to update profile");
     }
-  }, [error, updateUserData, isSuccess, isError]);
+  }, [error, updateUserData, isSuccess, isError, refetch]);
 
   if (isLoading) return <h1>Profile Loading...</h1>;
 
   const user = data && data.user;
+  const userRole = user?.lmsrole || user?.role;
 
   console.log("👤 Profile component - User data:", {
     name: user?.name,
@@ -119,7 +120,7 @@ const Profile = () => {
             <h1 className="font-semibold text-gray-900 dark:text-gray-100 ">
               Role:
               <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                {user.role.toUpperCase()}
+                {userRole?.toUpperCase() || "STUDENT"}
               </span>
             </h1>
           </div>
@@ -133,7 +134,7 @@ const Profile = () => {
               <DialogHeader>
                 <DialogTitle>Edit Profile</DialogTitle>
                 <DialogDescription>
-                  Make changes to your profile here. Click save when you're
+                  Make changes to your profile here. Click save when you&apos;re
                   done.
                 </DialogDescription>
               </DialogHeader>
@@ -178,10 +179,10 @@ const Profile = () => {
         </div>
       </div>
       <div>
-        <h1 className="font-medium text-lg">Courses you're enrolled in</h1>
+        <h1 className="font-medium text-lg">Courses you&apos;re enrolled in</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-5">
           {user.enrolledCourses.length === 0 ? (
-            <h1>You haven't enrolled yet</h1>
+            <h1>You haven&apos;t enrolled yet</h1>
           ) : (
             user.enrolledCourses.map((course) => (
               <Course course={course} key={course._id} />

@@ -20,10 +20,27 @@ export const courseProgressApi = createApi({
       providesTags: ["CourseProgress"],
     }),
     getCourseProgress: builder.query({
-      query: (courseId) => ({
-        url: `/course/${courseId}`,
-        method: "GET",
-      }),
+      async queryFn(courseId, _api, _extraOptions, baseQuery) {
+        const initializeResult = await baseQuery({
+          url: `/course/${courseId}/initialize`,
+          method: "POST",
+        });
+
+        if (initializeResult.error && initializeResult.error.status !== 200 && initializeResult.error.status !== 201) {
+          return { error: initializeResult.error };
+        }
+
+        const progressResult = await baseQuery({
+          url: `/course/${courseId}`,
+          method: "GET",
+        });
+
+        if (progressResult.error) {
+          return { error: progressResult.error };
+        }
+
+        return { data: progressResult.data };
+      },
       providesTags: ["CourseProgress"],
     }),
     updateLectureProgress: builder.mutation({

@@ -25,7 +25,7 @@ const coursePurchaseSchema = new mongoose.Schema({
     },
     paymentMethod:{
         type:String,
-        enum:['stripe', 'paypal'],
+        enum:['stripe', 'paypal', 'flow', 'manual'],
         required:true
     },
     paymentDetails:{

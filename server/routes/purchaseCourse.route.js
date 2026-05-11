@@ -2,6 +2,8 @@ import express from "express";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import { 
   createCheckoutSession, 
+  flowConfirmationHandler,
+  flowReturnHandler,
   getAllPurchasedCourse, 
   getCourseDetailWithPurchaseStatus, 
   stripeWebhook,
@@ -17,6 +19,15 @@ router.route("/payment-methods").get(getPaymentMethods);
 
 // Create checkout session (supports both Stripe and PayPal)
 router.route("/checkout/create-checkout-session").post(isAuthenticated, createCheckoutSession);
+
+// Flow payment callbacks
+router
+  .route("/flow/confirm")
+  .post(express.urlencoded({ extended: false }), flowConfirmationHandler);
+router
+  .route("/flow/return")
+  .get(flowReturnHandler)
+  .post(express.urlencoded({ extended: false }), flowReturnHandler);
 
 // PayPal payment capture
 router.route("/paypal/capture").post(isAuthenticated, capturePayPalPaymentHandler);

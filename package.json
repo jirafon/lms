@@ -6,6 +6,7 @@
   "scripts": {
     "start": "cd server && npm start",
     "dev": "cd server && npm run dev",
+    "dev:all": "concurrently \"cd server && npm start\" \"cd client && npm start\"",
     "build": "cd client && npm run build",
     "seed:mpd": "cd server && npm run seed:mpd",
     "seed:mercado-publico": "cd server && npm run seed:mercado-publico",
@@ -15,6 +16,9 @@
     "install-all": "npm run install-server && npm run install-client"
   },
   "keywords": ["lms", "education", "react", "nodejs"],
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
   "author": "",
   "license": "ISC",
   "engines": {

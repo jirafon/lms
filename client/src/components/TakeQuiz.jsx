@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Skeleton } from './ui/skeleton';
 import QuizResults from './QuizResults';
@@ -23,14 +22,25 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState(null);
   const [results, setResults] = useState(null);
+  const initializedQuizIdRef = useRef(null);
 
   // Fetch quiz and start attempt
   useEffect(() => {
+    if (!quizId || initializedQuizIdRef.current === quizId) {
+      return;
+    }
+
+    initializedQuizIdRef.current = quizId;
+    let cancelled = false;
+
     const initializeQuiz = async () => {
       setLoading(true);
       setError(null);
       try {
         const result = await startQuiz(quizId).unwrap();
+        if (cancelled) {
+          return;
+        }
         setQuiz(result.quiz);
         setAttemptId(result.attemptId);
         setAnswers(result.quiz.questions.map(q => ({
@@ -39,12 +49,23 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
           textAnswer: ''
         })));
       } catch (err) {
+        initializedQuizIdRef.current = null;
+        if (cancelled) {
+          return;
+        }
         setError(err.data?.message || 'No se pudo iniciar el quiz');
         toast.error('Error al cargar el quiz');
       }
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     };
-    if (quizId) initializeQuiz();
+
+    initializeQuiz();
+
+    return () => {
+      cancelled = true;
+    };
   }, [quizId, startQuiz]);
 
   const handleOptionChange = (qIdx, optText, checked) => {

@@ -20,6 +20,54 @@ dotenv.config({});
 connectDB();
 const app = express();
 
+const normalizeOrigin = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const trimmedValue = value.trim().replace(/\/+$/, "");
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmedValue).origin;
+  } catch {
+    if (/^[a-z0-9.-]+\.onrender\.com$/i.test(trimmedValue)) {
+      return `https://${trimmedValue}`;
+    }
+
+    if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(trimmedValue)) {
+      return `http://${trimmedValue}`;
+    }
+
+    return trimmedValue;
+  }
+};
+
+const buildAllowedOriginPatterns = (origins) => {
+  return origins
+    .map((origin) => {
+      try {
+        const parsedOrigin = new URL(origin);
+        const renderHostMatch = parsedOrigin.hostname.match(/^([^.]+)(-[a-z0-9]+)?\.onrender\.com$/i);
+
+        if (!renderHostMatch) {
+          return null;
+        }
+
+        return new RegExp(
+          `^${parsedOrigin.protocol}//${renderHostMatch[1]}(?:-[a-z0-9]+)?\\.onrender\\.com$`,
+          "i"
+        );
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+};
+
 const configuredOrigins = [
   process.env.CORS_ORIGINS,
   process.env.CLIENT_URL,
@@ -27,10 +75,11 @@ const configuredOrigins = [
   process.env.FRONTEND_URL,
   process.env.FRONTEND_ORIGIN,
   process.env.VITE_CLIENT_URL,
+  process.env.PUBLIC_URL,
 ]
   .filter(Boolean)
   .flatMap((value) => value.split(","))
-  .map((value) => value.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
 
 const defaultDevOrigins = [
@@ -43,6 +92,15 @@ const defaultDevOrigins = [
 const allowedOrigins = new Set(
   isProduction ? configuredOrigins : [...configuredOrigins, ...defaultDevOrigins]
 );
+const allowedOriginPatterns = buildAllowedOriginPatterns(configuredOrigins);
+const corsConfigSources = {
+  CORS_ORIGINS: process.env.CORS_ORIGINS || null,
+  CLIENT_URL: process.env.CLIENT_URL || null,
+  CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || null,
+  FRONTEND_URL: process.env.FRONTEND_URL || null,
+  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || null,
+  VITE_CLIENT_URL: process.env.VITE_CLIENT_URL || null,
+};
 
 const isLocalDevOrigin = (origin) => {
   if (isProduction || !origin) {
@@ -54,22 +112,38 @@ const isLocalDevOrigin = (origin) => {
 
 if (allowedOrigins.size === 0) {
   logger.warn("CORS allowlist is empty; all browser origins will be temporarily accepted.");
+} else {
+  logger.info("CORS allowlist configured", {
+    allowedOrigins: [...allowedOrigins],
+    renderOriginPatterns: allowedOriginPatterns.map((pattern) => pattern.toString()),
+    sources: corsConfigSources,
+  });
 }
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (!normalizedOrigin) {
       return callback(null, true);
     }
 
-    if (allowedOrigins.size === 0 || allowedOrigins.has(origin) || isLocalDevOrigin(origin)) {
+    if (
+      allowedOrigins.size === 0 ||
+      allowedOrigins.has(normalizedOrigin) ||
+      allowedOriginPatterns.some((pattern) => pattern.test(normalizedOrigin)) ||
+      isLocalDevOrigin(normalizedOrigin)
+    ) {
       return callback(null, true);
     }
 
-    logger.warn("Blocked CORS origin", { origin });
+    logger.warn("Blocked CORS origin", { origin: normalizedOrigin, allowedOrigins: [...allowedOrigins] });
     return callback(new Error("Origin not allowed by CORS"));
   },
   credentials: true,
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 204,
 };
 
 

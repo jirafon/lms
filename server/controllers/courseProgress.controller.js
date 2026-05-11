@@ -17,6 +17,39 @@ const getOrderedLectures = (lectures = []) => {
     .map(({ lecture }) => lecture);
 };
 
+const buildInitialCourseProgress = async ({ userId, courseId }) => {
+  const course = await Course.findById(courseId).populate('lectures');
+  if (!course) {
+    return null;
+  }
+
+  const orderedLectures = getOrderedLectures(course.lectures);
+  const quizzes = await Quiz.find({ courseId, isActive: true });
+
+  const lectureProgress = orderedLectures.map((lecture) => ({
+    lectureId: lecture._id,
+    watched: false,
+    watchTime: 0,
+    quizCompleted: false,
+    quizScore: 0,
+    quizAttempts: 0,
+    bestQuizScore: 0,
+  }));
+
+  const progress = new CourseProgress({
+    userId,
+    courseId,
+    lectures: lectureProgress,
+    totalLectures: orderedLectures.length,
+    totalQuizzes: quizzes.length,
+    courseProgress: 0,
+  });
+
+  await progress.save();
+
+  return progress;
+};
+
 export const initializeCourseProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -52,41 +85,13 @@ export const initializeCourseProgress = async (req, res) => {
       });
     }
 
-    // Get course and lectures
-    const course = await Course.findById(courseId).populate('lectures');
-    if (!course) {
+    const progress = await buildInitialCourseProgress({ userId, courseId });
+    if (!progress) {
       return sendError(res, {
         status: 404,
         message: "Course not found"
       });
     }
-
-    const orderedLectures = getOrderedLectures(course.lectures);
-
-    // Get quizzes for this course
-    const quizzes = await Quiz.find({ courseId, isActive: true });
-
-    // Initialize lecture progress
-    const lectureProgress = orderedLectures.map(lecture => ({
-      lectureId: lecture._id,
-      watched: false,
-      watchTime: 0,
-      quizCompleted: false,
-      quizScore: 0,
-      quizAttempts: 0,
-      bestQuizScore: 0
-    }));
-
-    const progress = new CourseProgress({
-      userId,
-      courseId,
-      lectures: lectureProgress,
-      totalLectures: orderedLectures.length,
-      totalQuizzes: quizzes.length,
-      courseProgress: 0
-    });
-
-    await progress.save();
 
     return sendSuccess(res, {
       status: 201,
@@ -220,7 +225,7 @@ export const checkLectureAccess = async (req, res) => {
       });
     }
 
-    const progress = await CourseProgress.findOne({
+    let progress = await CourseProgress.findOne({
       userId,
       courseId
     }).populate({
@@ -229,9 +234,17 @@ export const checkLectureAccess = async (req, res) => {
     });
 
     if (!progress) {
-      return sendError(res, {
-        status: 404,
-        message: "Course progress not found"
+      const initializedProgress = await buildInitialCourseProgress({ userId, courseId });
+      if (!initializedProgress) {
+        return sendError(res, {
+          status: 404,
+          message: "Course not found"
+        });
+      }
+
+      progress = await CourseProgress.findById(initializedProgress._id).populate({
+        path: 'lectures.lectureId',
+        select: 'lectureTitle'
       });
     }
 

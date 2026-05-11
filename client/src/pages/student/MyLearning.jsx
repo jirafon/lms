@@ -2,8 +2,10 @@ import React from "react";
 import Course from "./Course";
 import { useLoadUserQuery } from "@/features/api/authApi";
 import { useGetUserProgressQuery } from "@/features/api/courseProgressApi";
+import { useTranslation } from "react-i18next";
 
 const MyLearning = () => { 
+  const { t } = useTranslation();
   const {data, isLoading, error} = useLoadUserQuery();
   const { data: progressData } = useGetUserProgressQuery();
 
@@ -13,8 +15,8 @@ const MyLearning = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto my-10 px-4 md:px-0">
-      <h1 className="font-bold text-2xl">MY LEARNING</h1>
+    <div className="max-w-6xl mx-auto my-10 px-4 md:px-0">
+      <h1 className="font-bold text-2xl">{t("navigation.my_learning")}</h1>
       <div className="my-5">
         {isLoading ? (
           <MyLearningSkeleton />
@@ -24,14 +26,16 @@ const MyLearning = () => {
             <p>Please try refreshing the page.</p>
           </div>
         ) : myLearning.length === 0 ? (
-          <p>You are not enrolled in any course.</p>
+          <p>{t("student.no_enrolled_courses")}</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {myLearning.map((course, index) => (
               <Course
                 key={index}
                 course={course}
                 progressSummary={progressByCourseId.get(String(course._id))}
+                size="large"
+                showPrice={false}
               />
             ))}
           </div>
@@ -45,11 +49,11 @@ export default MyLearning;
 
 // Skeleton component for loading state
 const MyLearningSkeleton = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
     {[...Array(3)].map((_, index) => (
       <div
         key={index}
-        className="bg-gray-300 dark:bg-gray-700 rounded-lg h-40 animate-pulse"
+        className="bg-gray-300 dark:bg-gray-700 rounded-lg h-56 animate-pulse"
       ></div>
     ))}
   </div>

@@ -36,6 +36,20 @@ import { toast } from "sonner";
 
 const MEDIA_API = import.meta.env.VITE_API_BASE_URL + "/media/";
 
+const getVideoFileName = (videoUrl) => {
+  if (!videoUrl) {
+    return "";
+  }
+
+  try {
+    const decodedUrl = decodeURIComponent(videoUrl);
+    const fileName = decodedUrl.split("/").pop() || "";
+    return fileName.replace(/^\d+-/, "").replace(/\+/g, " ");
+  } catch {
+    return videoUrl.split("/").pop() || "";
+  }
+};
+
 
 const LectureTab = () => {
   const [lectureTitle, setLectureTitle] = useState("");
@@ -45,10 +59,10 @@ const LectureTab = () => {
   const [isFree, setIsFree] = useState(false);
   const [mediaProgress, setMediaProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [btnDisable, setBtnDisable] = useState(true);
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [videoFileName, setVideoFileName] = useState("");
   const params = useParams();
   const { courseId, lectureId } = params;
   const navigate = useNavigate();
@@ -69,6 +83,7 @@ const LectureTab = () => {
             }
           : null
       );
+      setVideoFileName(getVideoFileName(lecture.videoUrl));
       setSupportMaterials(lecture.supportMaterials || []);
     }
   },[lecture])
@@ -80,6 +95,7 @@ const LectureTab = () => {
   const fileChangeHandler = async (e) => {
     const file = e.target.files[0];
     if (file) {
+      setVideoFileName(file.name);
       console.log("🎥 Video upload started from frontend");
       console.log("📁 File name:", file.name);
       console.log("📏 File size:", file.size, "bytes");
@@ -105,15 +121,15 @@ const LectureTab = () => {
           
           setUploadVideoInfo({
             videoUrl: res.data.data.url,
-            publicId: res.data.data.public_id,
+            publicId: res.data.data.key,
           });
-          setBtnDisable(false);
           toast.success(res.data.message);
         }
       } catch (error) {
         console.error("❌ Video upload failed");
         console.error("🔍 Error response:", error.response?.data);
         console.error("📋 Full error:", error);
+        setVideoFileName(getVideoFileName(lecture?.videoUrl));
         
         toast.error("Video upload failed");
       } finally {
@@ -164,17 +180,38 @@ const LectureTab = () => {
   };
 
   const editLectureHandler = async () => {
-    console.log({ lectureTitle, lectureDescription, uploadVideInfo, supportMaterials, isFree, courseId, lectureId });
+    if (mediaProgress) {
+      toast.error("Wait for the video upload to finish before saving the lecture.");
+      return;
+    }
 
-    await edtiLecture({
-      lectureTitle,
-      lectureDescription,
-      videoInfo:uploadVideInfo,
+    const normalizedLectureTitle = lectureTitle.trim();
+    const normalizedLectureDescription = lectureDescription.trim();
+
+    if (!normalizedLectureTitle) {
+      toast.error("Lecture title is required.");
+      return;
+    }
+
+    const lecturePayload = {
+      lectureTitle: normalizedLectureTitle,
       supportMaterials,
       isPreviewFree:isFree,
       courseId,
       lectureId,
-    });
+    };
+
+    if (normalizedLectureDescription) {
+      lecturePayload.lectureDescription = normalizedLectureDescription;
+    }
+
+    if (uploadVideInfo) {
+      lecturePayload.videoInfo = uploadVideInfo;
+    }
+
+    console.log(lecturePayload);
+
+    await edtiLecture(lecturePayload);
   };
 
   const handleDeleteClick = () => {
@@ -206,15 +243,16 @@ const LectureTab = () => {
       toast.success(data.message);
     }
     if (error) {
-      toast.error(error.data.message);
+      const errorDetails = error.data?.errors?.length ? `: ${error.data.errors.join(", ")}` : "";
+      toast.error(`${error.data?.message || "Lecture update failed"}${errorDetails}`);
     }
-  }, [isSuccess, error]);
+  }, [isSuccess, error, data?.message]);
 
   useEffect(()=>{
     if(removeSuccess){
       toast.success(removeData.message);
     }
-  },[removeSuccess])
+  },[removeSuccess, removeData?.message])
 
   return (
     <Card>
@@ -273,13 +311,40 @@ const LectureTab = () => {
           <Label>
             Video <span className="text-red-500">*</span>
           </Label>
-          <Input
-            type="file"
-            accept="video/*"
-            onChange={fileChangeHandler}
-            placeholder="Ex. Introduction to Javascript"
-            className="w-fit"
-          />
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <Input
+              id="lecture-video-upload"
+              type="file"
+              accept="video/*"
+              onChange={fileChangeHandler}
+              placeholder="Ex. Introduction to Javascript"
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById("lecture-video-upload")?.click()}
+              disabled={mediaProgress}
+            >
+              {mediaProgress ? "Uploading video..." : "Upload video"}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {videoFileName || "No video selected"}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {uploadVideInfo?.videoUrl ? "Video uploaded" : "No video uploaded yet"}
+          </p>
+          {uploadVideInfo?.videoUrl && (
+            <a
+              href={uploadVideInfo.videoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-sm text-blue-600 hover:underline"
+            >
+              Preview current video
+            </a>
+          )}
         </div>
         <div className="my-5">
           <Label>Downloadable files</Label>
@@ -318,7 +383,7 @@ const LectureTab = () => {
         )}
 
         <div className="mt-4">
-          <Button disabled={isLoading || isUploadingMaterial} onClick={editLectureHandler}>
+          <Button disabled={isLoading || isUploadingMaterial || mediaProgress} onClick={editLectureHandler}>
               {
                 isLoading ? <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin"/>

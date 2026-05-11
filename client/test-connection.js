@@ -28,7 +28,7 @@ async function testConnection() {
     
     // Check if server is running
     try {
-      const serverTest = await axios.get('http://localhost:3000');
+      await axios.get('http://localhost:3000');
       console.log('✅ Server is running on port 3000');
     } catch (serverError) {
       console.log('❌ Server is not running on port 3000');

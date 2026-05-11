@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useGetQuizByLectureQuery, useDeleteQuizMutation } from '@/features/api/quizApi';
-import { Edit, Trash2, Plus, Eye, Users } from 'lucide-react';
+import { Edit, Trash2, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import CreateQuiz from './CreateQuiz';

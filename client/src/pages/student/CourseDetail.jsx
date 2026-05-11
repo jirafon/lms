@@ -14,7 +14,6 @@ import { useGetCourseProgressQuery } from "@/features/api/courseProgressApi";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
 import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Sparkles, Users, BookOpen } from "lucide-react";
 import { useMemo, useState } from "react";
-import ReactPlayer from "react-player";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
@@ -70,6 +69,11 @@ const CourseDetail = () => {
 
   const course = data?.course;
   const purchased = data?.purchased;
+  const courseLevelLabel = {
+    Beginner: t("course.beginner"),
+    Medium: t("course.medium"),
+    Advance: t("course.advance"),
+  }[course?.courseLevel] || t("course.beginner");
   const firstLecture = course?.lectures?.[0];
   const courseTitle = course?.courseTitle || course?.title || "Curso";
   const courseSummary = course?.subTitle || course?.description || "";
@@ -207,25 +211,25 @@ const CourseDetail = () => {
             <Card className="overflow-hidden border-slate-200/80 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.12)] backdrop-blur">
               <CardContent className="flex flex-col p-4 md:p-5">
                 <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  <div className="aspect-video w-full">
-                    <ReactPlayer
-                      width="100%"
-                      height="100%"
-                      url={firstLecture?.videoUrl}
-                      controls={true}
-                      onError={() => {
-                        toast.error("Video no disponible - Configuración de S3 requerida");
-                      }}
-                      fallback={
-                        <div className="flex h-full w-full flex-col items-center justify-center rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
-                          <AlertTriangle className="mb-4 h-12 w-12 text-yellow-500" />
-                          <h3 className="mb-2 text-lg font-semibold">Video no disponible</h3>
-                          <p className="text-center text-sm text-gray-600">
-                            Configuración de S3 requerida en Render
-                          </p>
-                        </div>
-                      }
-                    />
+                  <div className="aspect-video w-full bg-slate-100">
+                    {course?.courseThumbnail ? (
+                      <img
+                        src={course.courseThumbnail}
+                        alt={courseTitle}
+                        className="h-full w-full object-cover"
+                        onError={() => {
+                          toast.error("No se pudo cargar la imagen del curso");
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
+                        <AlertTriangle className="mb-4 h-12 w-12 text-yellow-500" />
+                        <h3 className="mb-2 text-lg font-semibold">Imagen no disponible</h3>
+                        <p className="text-center text-sm text-gray-600">
+                          Este curso no tiene miniatura configurada
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -254,17 +258,19 @@ const CourseDetail = () => {
                     )}
                   </div>
 
-                  <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
-                      <p className="mt-1 text-3xl font-semibold">US${course?.coursePrice ?? 0}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
+                  {!purchased && (
+                    <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
+                        <p className="mt-1 text-3xl font-semibold">{course?.currency || "USD"}${course?.coursePrice ?? 0}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
+                      </div>
+                      <div className="text-right text-xs text-slate-400">
+                        <p>{courseLevelLabel}</p>
+                        <p className="mt-1">Acceso inmediato</p>
+                      </div>
                     </div>
-                    <div className="text-right text-xs text-slate-400">
-                      <p>{course?.courseLevel || "Beginner"}</p>
-                      <p className="mt-1">Acceso inmediato</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {renderSupportMaterials(firstLecture)}

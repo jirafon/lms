@@ -63,7 +63,7 @@ const CourseTab = () => {
   const { data: courseByIdData, isLoading: courseByIdLoading , refetch} =
     useGetCourseByIdQuery(courseId);
 
-    const [publishCourse, {}] = usePublishCourseMutation();
+    const [publishCourse] = usePublishCourseMutation();
     const [removeCourse, { isLoading: isRemoving }] = useRemoveCourseMutation();
  
   useEffect(() => {
@@ -189,7 +189,7 @@ const CourseTab = () => {
     if (error) {
       toast.error(error.data.message || t('course.failed_to_update_course'));
     }
-  }, [isSuccess, error]);
+  }, [isSuccess, error, data?.message, t]);
 
   if(courseByIdLoading) return <h1>{t('course.loading')}</h1>
  

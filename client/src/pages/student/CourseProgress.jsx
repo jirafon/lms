@@ -26,7 +26,7 @@ import TakeQuiz from "@/components/TakeQuiz";
 
 const ESTIMATED_MINUTES_PER_LECTURE = 12;
 
-const getLectureStatus = ({ lecture, lectureProgress, isUnlocked }) => {
+const getLectureStatus = ({ lectureProgress, isUnlocked }) => {
   if (!isUnlocked) {
     return {
       label: "Bloqueado",
@@ -77,7 +77,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
 
   const course = courseData?.course;
   const progress = progressData?.progress;
-  const lectures = course?.lectures || [];
+  const lectures = useMemo(() => course?.lectures || [], [course?.lectures]);
 
   const progressByLectureId = useMemo(() => {
     const entries = progress?.lectures || [];
@@ -227,7 +227,14 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
           <Card className="border-slate-200/80 bg-white/90 shadow-sm">
             <CardContent className="p-5 md:p-6">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                {videoError ? (
+                {!activeLecture?.videoUrl ? (
+                  <div className="flex aspect-video flex-col items-center justify-center gap-3 p-6 text-center">
+                    <AlertTriangle className="h-10 w-10 text-amber-500" />
+                    <p className="max-w-md text-sm text-slate-600">
+                      Este capítulo no tiene un video configurado todavía. Puedes revisar la descripción y los materiales de apoyo mientras se carga el contenido.
+                    </p>
+                  </div>
+                ) : videoError ? (
                   <div className="flex aspect-video flex-col items-center justify-center gap-3 p-6 text-center">
                     <AlertTriangle className="h-10 w-10 text-amber-500" />
                     <p className="max-w-md text-sm text-slate-600">

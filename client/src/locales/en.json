@@ -40,6 +40,9 @@
     "register": "Register",
     "search_courses": "Search Courses"
   },
+  "student": {
+    "no_enrolled_courses": "You are not enrolled in any course."
+  },
   "auth": {
     "login": "Login",
     "register": "Register",
@@ -259,18 +262,23 @@
     "payment_method": "Payment Method",
     "credit_card": "Credit/Debit Card",
     "paypal": "PayPal",
+    "flow": "Flow",
     "stripe": "Stripe",
     "checkout": "Checkout",
     "purchase": "Purchase",
+    "purchase_course": "Purchase Course",
     "buy_now": "Buy Now",
     "payment_successful": "Payment successful",
     "payment_failed": "Payment failed",
-    "processing_payment": "Processing payment..."
+    "processing_payment": "Processing payment...",
+    "invalid_checkout_response": "Invalid response from payment provider.",
+    "checkout_creation_failed": "Failed to create checkout session"
   },
   "admin": {
     "admin": "Admin",
     "admin_dashboard": "Admin Dashboard",
     "manage_courses": "Manage Courses",
+    "manage_students": "Manage Students",
     "manage_lectures": "Manage Lectures",
     "manage_quizzes": "Manage Quizzes",
     "manage_users": "Manage Users",

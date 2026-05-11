@@ -28,11 +28,31 @@ export default [
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
-      'react/jsx-no-target-blank': 'off',
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
+      'no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: '^React$',
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
       ],
+      'react/prop-types': 'off',
+      'react/jsx-no-target-blank': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: [
+      'eslint.config.js',
+      'postcss.config.js',
+      'tailwind.config.js',
+      'webpack.config.js',
+      'test-connection.js',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
 ]

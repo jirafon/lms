@@ -41,6 +41,11 @@ PAYPAL_CLIENT_ID=tu_paypal_client_id
 PAYPAL_CLIENT_SECRET=tu_paypal_secret
 STRIPE_SECRET_KEY=tu_stripe_secret
 STRIPE_PUBLISHABLE_KEY=tu_stripe_publishable
+FLOW_API_KEY=tu_flow_api_key
+FLOW_SECRET_KEY=tu_flow_secret_key
+FLOW_ENV=sandbox
+FLOW_CURRENCY=CLP
+SERVER_PUBLIC_URL=https://tu-backend.example.com
 ```
 
 ## 🛠️ Comandos de Build
@@ -76,7 +81,7 @@ LMS2/
 
 ## 🌐 URLs de Despliegue
 
-- **Cliente:** https://lms-client.onrender.com
+- **Cliente:** https://lms-client-ct7h.onrender.com
 - **Servidor:** https://lms-server.onrender.com
 
 ## ✅ Verificación

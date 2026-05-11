@@ -363,6 +363,42 @@ export const startQuiz = async (req, res) => {
       });
     }
 
+    const inProgressAttempts = await QuizAttempt.find({
+      userId,
+      quizId,
+      status: 'in_progress'
+    }).sort({ createdAt: -1 });
+
+    const activeAttempt = inProgressAttempts[0] || null;
+
+    if (inProgressAttempts.length > 1) {
+      await QuizAttempt.deleteMany({
+        _id: {
+          $in: inProgressAttempts.slice(1).map((attempt) => attempt._id)
+        }
+      });
+    }
+
+    if (activeAttempt) {
+      const studentQuiz = {
+        ...quiz.toObject(),
+        questions: quiz.questions.map(q => ({
+          ...q,
+          options: q.options.map(opt => ({
+            text: opt.text,
+          })),
+          correctAnswer: undefined
+        }))
+      };
+
+      return sendSuccess(res, {
+        message: "Quiz attempt already in progress",
+        quiz: studentQuiz,
+        attemptId: activeAttempt._id,
+        timeLimit: quiz.timeLimit
+      });
+    }
+
     // Check if user has exceeded max attempts
     const attemptCount = await QuizAttempt.countDocuments({
       userId,

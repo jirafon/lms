@@ -88,7 +88,7 @@ const CreateLecture = () => {
     if (error) {
       toast.error(error.data.message);
     }
-  }, [isSuccess, error]);
+  }, [isSuccess, error, data?.message, refetch]);
 
   console.log(lectureData);
 

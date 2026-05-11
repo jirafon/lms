@@ -1,8 +1,14 @@
-# React + Vite
+# React + Webpack
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This client is bundled with Webpack 5 and Babel.
 
-Currently, two official plugins are available:
+Available scripts:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `npm run dev`: start the development server on port 3000 by default
+- `npm run build`: generate the production bundle in `dist`
+- `npm run preview`: serve the built `dist` folder locally
+- `npm run lint`: run ESLint with the flat config in `eslint.config.js`
+
+Environment variables:
+
+- `VITE_API_BASE_URL`: API base URL injected at build time for backward compatibility with the existing client code

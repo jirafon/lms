@@ -7,7 +7,7 @@ const COURSE_API = import.meta.env.VITE_API_BASE_URL
 
 export const courseApi = createApi({
   reducerPath: "courseApi",
-  tagTypes: ["Refetch_Creator_Course", "Refetch_Lecture"],
+  tagTypes: ["Refetch_Creator_Course", "Refetch_Lecture", "Refetch_Students"],
   baseQuery: createAuthBaseQuery(COURSE_API),
   endpoints: (builder) => ({
     createCourse: builder.mutation({
@@ -58,6 +58,38 @@ export const courseApi = createApi({
         url: `/${courseId}/students`,
         method: "GET",
       }),
+      providesTags: ["Refetch_Students"],
+    }),
+    getStudentsDashboard: builder.query({
+      query: (idcontrato = "") => ({
+        url: `/students/dashboard${idcontrato ? `?idcontrato=${encodeURIComponent(idcontrato)}` : ""}`,
+        method: "GET",
+      }),
+      providesTags: ["Refetch_Students"],
+    }),
+    enrollStudentByEmail: builder.mutation({
+      query: ({ email, courseId }) => ({
+        url: "/students/enroll",
+        method: "POST",
+        body: { email, courseId },
+      }),
+      invalidatesTags: ["Refetch_Students"],
+    }),
+    unenrollStudentFromCourse: builder.mutation({
+      query: ({ studentId, courseId }) => ({
+        url: "/students/unenroll",
+        method: "POST",
+        body: { studentId, courseId },
+      }),
+      invalidatesTags: ["Refetch_Students"],
+    }),
+    removeStudentFromDashboard: builder.mutation({
+      query: ({ studentId }) => ({
+        url: "/students/remove",
+        method: "POST",
+        body: { studentId },
+      }),
+      invalidatesTags: ["Refetch_Students"],
     }),
     editCourse: builder.mutation({
       query: ({ formData, courseId }) => ({
@@ -125,6 +157,7 @@ export const courseApi = createApi({
         url: `/lecture/${lectureId}`,
         method: "GET",
       }),
+      providesTags: ["Refetch_Lecture"],
     }),
     publishCourse: builder.mutation({
       query: ({ courseId, query }) => ({
@@ -148,6 +181,10 @@ export const {
   useGetCreatorCourseQuery,
   useLazyGetCourseStudentsQuery,
   useEditCourseMutation,
+  useGetStudentsDashboardQuery,
+  useEnrollStudentByEmailMutation,
+  useUnenrollStudentFromCourseMutation,
+  useRemoveStudentFromDashboardMutation,
   useGetCourseByIdQuery,
   useCreateLectureMutation,
   useGetCourseLectureQuery,
