@@ -21,6 +21,14 @@ const getOrderedLectures = (lectures = []) => {
         .map(({ lecture }) => lecture);
 };
 
+const syncCourseLectureRefs = async (courseId, lectureIds = []) => {
+    await Course.findByIdAndUpdate(courseId, {
+        lectures: lectureIds,
+    }, {
+        runValidators: false,
+    });
+};
+
 const normalizeLectureOrder = async (courseId) => {
     const course = await Course.findById(courseId).populate("lectures");
     if (!course) {
@@ -35,8 +43,7 @@ const normalizeLectureOrder = async (courseId) => {
         )
     );
 
-    course.lectures = orderedLectures.map((lecture) => lecture._id);
-    await course.save();
+    await syncCourseLectureRefs(courseId, orderedLectures.map((lecture) => lecture._id));
 
     return orderedLectures.map((lecture, index) => ({
         ...lecture.toObject(),
@@ -902,8 +909,11 @@ export const createLecture = async (req,res) => {
         });
 
         if(course){
-            course.lectures.push(lecture._id);
-            await course.save();
+            await Course.findByIdAndUpdate(courseId, {
+                $addToSet: { lectures: lecture._id },
+            }, {
+                runValidators: false,
+            });
             await normalizeLectureOrder(courseId);
         }
 
@@ -1008,8 +1018,11 @@ export const editLecture = async (req,res) => {
         // Ensure the course still has the lecture id if it was not aleardy added;
         const course = await Course.findById(courseId);
         if(course && !course.lectures.includes(lecture._id)){
-            course.lectures.push(lecture._id);
-            await course.save();
+            await Course.findByIdAndUpdate(courseId, {
+                $addToSet: { lectures: lecture._id },
+            }, {
+                runValidators: false,
+            });
         };
 
         if (course) {
@@ -1172,8 +1185,7 @@ export const reorderLecture = async (req,res) => {
             )
         );
 
-        course.lectures = orderedLectures.map((lecture) => lecture._id);
-        await course.save();
+        await syncCourseLectureRefs(courseId, orderedLectures.map((lecture) => lecture._id));
 
         return sendSuccess(res, {
             message: "Lecture order updated successfully.",
