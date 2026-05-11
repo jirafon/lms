@@ -12,7 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import Lecture from "./Lecture";
 
-const MEDIA_API = import.meta.env.VITE_API_BASE_URL + "/media/";
+const MEDIA_API = `${process.env.REACT_APP_API_BASE_URL || "http://localhost:3010/api/v1"}/media/`;
 
 const CreateLecture = () => {
   const [lectureTitle, setLectureTitle] = useState("");

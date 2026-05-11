@@ -1,8 +1,8 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
-const QUIZ_API = import.meta.env.VITE_API_BASE_URL 
-  ? import.meta.env.VITE_API_BASE_URL + "/quiz"
+const QUIZ_API = process.env.REACT_APP_API_BASE_URL 
+  ? process.env.REACT_APP_API_BASE_URL + "/quiz"
   : "http://localhost:3010/api/v1/quiz";
 
 export const quizApi = createApi({

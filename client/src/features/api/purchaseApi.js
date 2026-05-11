@@ -3,8 +3,8 @@ import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
 //const COURSE_PURCHASE_API = "http://localhost:3010/api/v1/purchase";
 
-const COURSE_PURCHASE_API = import.meta.env.VITE_API_BASE_URL 
-  ? import.meta.env.VITE_API_BASE_URL + "/purchase"
+const COURSE_PURCHASE_API = process.env.REACT_APP_API_BASE_URL 
+  ? process.env.REACT_APP_API_BASE_URL + "/purchase"
   : "http://localhost:3010/api/v1/purchase";
 
 export const purchaseApi = createApi({

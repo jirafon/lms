@@ -1,8 +1,8 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { createAuthBaseQuery } from "./createAuthBaseQuery";
 
-const CERTIFICATE_API = import.meta.env.VITE_API_BASE_URL 
-  ? import.meta.env.VITE_API_BASE_URL + "/certificate"
+const CERTIFICATE_API = process.env.REACT_APP_API_BASE_URL 
+  ? process.env.REACT_APP_API_BASE_URL + "/certificate"
   : "http://localhost:3010/api/v1/certificate";
 
 export const certificateApi = createApi({

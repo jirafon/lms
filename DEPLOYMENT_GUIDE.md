@@ -22,7 +22,7 @@ El error `ERESOLVE could not resolve` ha sido solucionado eliminando las depende
 
 ### Variables de Entorno del Cliente:
 ```
-VITE_API_BASE_URL=https://lms-server.onrender.com
+REACT_APP_API_BASE_URL=https://lms-server.onrender.com
 NODE_VERSION=18.17.0
 ```
 

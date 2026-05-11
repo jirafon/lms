@@ -280,7 +280,7 @@ const CourseDetail = () => {
               <CardFooter className="flex flex-col gap-2 p-4">
                 {purchased ? (
                   <>
-                    <Button onClick={handleContinueCourse} className="h-11 w-full bg-slate-950 text-white hover:bg-slate-800">
+                    <Button onClick={handleContinueCourse} className="min-h-11 w-full whitespace-normal py-3 text-center leading-tight bg-slate-950 text-white hover:bg-slate-800">
                       {continueLabel}
                     </Button>
                     <Button

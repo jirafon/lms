@@ -6,14 +6,15 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: true });
+
 export default (_, argv) => {
   const isProduction = argv.mode === 'production';
-  const apiBaseUrl = process.env.VITE_API_BASE_URL || 'http://localhost:3010/api/v1';
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3010/api/v1';
 
   return {
     mode: isProduction ? 'production' : 'development',
@@ -67,7 +68,7 @@ export default (_, argv) => {
     plugins: [
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
+        'process.env.REACT_APP_API_BASE_URL': JSON.stringify(apiBaseUrl),
       }),
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'index.html'),

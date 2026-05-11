@@ -3,8 +3,8 @@ import { createAuthBaseQuery } from "./createAuthBaseQuery";
 // Opción 1: importar y luego llamar a .config()
 
 ///const COURSE_PROGRESS_API = "http://localhost:3010/api/v1/progress";
-const COURSE_PROGRESS_API = import.meta.env.VITE_API_BASE_URL 
-  ? import.meta.env.VITE_API_BASE_URL + "/progress"
+const COURSE_PROGRESS_API = process.env.REACT_APP_API_BASE_URL 
+  ? process.env.REACT_APP_API_BASE_URL + "/progress"
   : "http://localhost:3010/api/v1/progress";
 
 export const courseProgressApi = createApi({

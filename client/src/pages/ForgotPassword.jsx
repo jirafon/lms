@@ -18,9 +18,6 @@ const ForgotPassword = () => {
   useEffect(() => {
     if (isSuccess && data) {
       toast.success(data.message || t("auth.reset_link_sent"));
-      if (data.resetUrl) {
-        toast.info(`${t("auth.dev_reset_link")}: ${data.resetUrl}`);
-      }
       navigate("/login", { replace: true });
     }
 
