@@ -77,15 +77,21 @@ export const sendPasswordResetEmail = async ({ to, name, resetUrl, locale }) => 
   const copy = getPasswordResetCopy(locale);
   const greetingLine = `${copy.greeting} ${name || ""},`.trim();
 
-  await transporter.sendMail({
-    from: process.env.MAILUSER || process.env.MAILUSER3,
-    to,
-    subject: copy.subject,
-    text: `${greetingLine} ${copy.intro} ${resetUrl} ${copy.expiry}`,
-    html: `<p>${greetingLine}</p><p>${copy.intro}</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>${copy.expiry}</p>`,
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.MAILUSER || process.env.MAILUSER3,
+      to,
+      subject: copy.subject,
+      text: `${greetingLine} ${copy.intro} ${resetUrl} ${copy.expiry}`,
+      html: `<p>${greetingLine}</p><p>${copy.intro}</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>${copy.expiry}</p>`,
+    });
 
-  return true;
+    return true;
+  } catch (error) {
+    logger.error("Failed to send password reset email", { error: error.message, to });
+    logger.info("Password reset URL", { to, resetUrl });
+    return false;
+  }
 };
 
 export const sendCourseInvitationEmail = async ({ to, name, invitationUrl, courseTitle, locale }) => {
@@ -99,13 +105,19 @@ export const sendCourseInvitationEmail = async ({ to, name, invitationUrl, cours
   const copy = getCourseInvitationCopy(locale);
   const greetingLine = `${copy.greeting} ${name || ""},`.trim();
 
-  await transporter.sendMail({
-    from: process.env.MAILUSER || process.env.MAILUSER3,
-    to,
-    subject: `${copy.subject}: ${courseTitle}`,
-    text: `${greetingLine} ${copy.intro} ${courseTitle}. ${copy.action} ${invitationUrl} ${copy.expiry}`,
-    html: `<p>${greetingLine}</p><p>${copy.intro} <strong>${courseTitle}</strong>.</p><p>${copy.action}</p><p><a href="${invitationUrl}">${invitationUrl}</a></p><p>${copy.expiry}</p>`,
-  });
+  try {
+    await transporter.sendMail({
+      from: process.env.MAILUSER || process.env.MAILUSER3,
+      to,
+      subject: `${copy.subject}: ${courseTitle}`,
+      text: `${greetingLine} ${copy.intro} ${courseTitle}. ${copy.action} ${invitationUrl} ${copy.expiry}`,
+      html: `<p>${greetingLine}</p><p>${copy.intro} <strong>${courseTitle}</strong>.</p><p>${copy.action}</p><p><a href="${invitationUrl}">${invitationUrl}</a></p><p>${copy.expiry}</p>`,
+    });
 
-  return true;
+    return true;
+  } catch (error) {
+    logger.error("Failed to send course invitation email", { error: error.message, to, courseTitle });
+    logger.info("Course invitation URL", { to, invitationUrl, courseTitle });
+    return false;
+  }
 };

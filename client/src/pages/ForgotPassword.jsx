@@ -6,12 +6,13 @@ import { useForgotPasswordMutation } from "@/features/api/authApi";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const ForgotPassword = () => {
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
+  const navigate = useNavigate();
   const [forgotPassword, { data, error, isLoading, isSuccess }] = useForgotPasswordMutation();
 
   useEffect(() => {
@@ -20,12 +21,13 @@ const ForgotPassword = () => {
       if (data.resetUrl) {
         toast.info(`${t("auth.dev_reset_link")}: ${data.resetUrl}`);
       }
+      navigate("/login", { replace: true });
     }
 
     if (error) {
       toast.error(error?.data?.message || t("auth.reset_link_failed"));
     }
-  }, [data, error, isSuccess, t]);
+  }, [data, error, isSuccess, navigate, t]);
 
   const submitHandler = async () => {
     await forgotPassword({ email, locale: i18n.language });

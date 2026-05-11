@@ -136,9 +136,15 @@ export const forgotPassword = async (req, res) => {
         const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
         const resetPasswordExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-        user.resetPasswordToken = resetTokenHash;
-        user.resetPasswordExpiresAt = resetPasswordExpiresAt;
-        await user.save();
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    resetPasswordToken: resetTokenHash,
+                    resetPasswordExpiresAt,
+                },
+            }
+        );
 
         const frontendBaseUrl =
             process.env.CLIENT_URL ||
@@ -220,10 +226,20 @@ export const resetPassword = async (req, res) => {
             });
         }
 
-        user.password = await bcrypt.hash(password, 10);
-        user.resetPasswordToken = "";
-        user.resetPasswordExpiresAt = undefined;
-        await user.save();
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    password: hashedPassword,
+                    resetPasswordToken: "",
+                },
+                $unset: {
+                    resetPasswordExpiresAt: 1,
+                },
+            }
+        );
 
         return sendSuccess(res, {
             message: copy.resetSuccess,
