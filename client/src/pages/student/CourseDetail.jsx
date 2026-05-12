@@ -289,13 +289,13 @@ const CourseDetail = () => {
               <CardFooter className="flex flex-col gap-2 p-4">
                 {purchased ? (
                   <>
-                    <Button onClick={handleContinueCourse} className="min-h-11 w-full whitespace-normal py-3 text-center leading-tight bg-slate-950 text-white hover:bg-slate-800">
+                    <Button onClick={handleContinueCourse} className="min-h-11 w-full whitespace-normal py-3 text-center leading-tight bg-emerald-600 text-white hover:bg-emerald-700">
                       {continueLabel}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => setShowProgress(!showProgress)}
-                      className="h-11 w-full items-center gap-2 border-slate-300 bg-white"
+                      className="h-11 w-full items-center gap-2 border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
                     >
                       <BarChart3 className="h-4 w-4" />
                       {showProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
