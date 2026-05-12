@@ -7,6 +7,21 @@ import { logger } from "../utils/logger.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { isValidObjectId, validateQuizPayload } from "../utils/validators.js";
 
+const buildStudentQuizPayload = (quiz) => ({
+  ...quiz.toObject(),
+  questions: quiz.questions.map((question) => {
+    const questionData = question.toObject();
+
+    return {
+      ...questionData,
+      options: question.options.map((option) => ({
+        text: option.text,
+      })),
+      correctAnswer: undefined,
+    };
+  }),
+});
+
 // ===== INSTRUCTOR FUNCTIONS =====
 
 export const createQuiz = async (req, res) => {
@@ -244,17 +259,7 @@ export const getQuizById = async (req, res) => {
 
     if (!isInstructor) {
       // Remove correct answers for students
-      const studentQuiz = {
-        ...quiz.toObject(),
-        questions: quiz.questions.map(q => ({
-          ...q,
-          options: q.options.map(opt => ({
-            text: opt.text,
-            // Don't include isCorrect for students
-          })),
-          correctAnswer: undefined // Remove correct answer
-        }))
-      };
+      const studentQuiz = buildStudentQuizPayload(quiz);
 
       return sendSuccess(res, {
         quiz: studentQuiz
@@ -380,16 +385,7 @@ export const startQuiz = async (req, res) => {
     }
 
     if (activeAttempt) {
-      const studentQuiz = {
-        ...quiz.toObject(),
-        questions: quiz.questions.map(q => ({
-          ...q,
-          options: q.options.map(opt => ({
-            text: opt.text,
-          })),
-          correctAnswer: undefined
-        }))
-      };
+      const studentQuiz = buildStudentQuizPayload(quiz);
 
       return sendSuccess(res, {
         message: "Quiz attempt already in progress",
@@ -425,17 +421,7 @@ export const startQuiz = async (req, res) => {
     await attempt.save();
 
     // Return quiz without correct answers
-    const studentQuiz = {
-      ...quiz.toObject(),
-      questions: quiz.questions.map(q => ({
-        ...q,
-        options: q.options.map(opt => ({
-          text: opt.text,
-          // Don't include isCorrect
-        })),
-        correctAnswer: undefined
-      }))
-    };
+    const studentQuiz = buildStudentQuizPayload(quiz);
 
     return sendSuccess(res, {
       message: "Quiz started successfully",
@@ -723,17 +709,7 @@ export const getQuizByLecture = async (req, res) => {
       });
     } else {
       // Return quiz without correct answers for students
-      const studentQuiz = {
-        ...quiz.toObject(),
-        questions: quiz.questions.map(q => ({
-          ...q,
-          options: q.options.map(opt => ({
-            text: opt.text,
-            // Don't include isCorrect for students
-          })),
-          correctAnswer: undefined // Remove correct answer
-        }))
-      };
+      const studentQuiz = buildStudentQuizPayload(quiz);
 
       return sendSuccess(res, {
         quiz: studentQuiz

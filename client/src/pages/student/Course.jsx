@@ -29,7 +29,11 @@ const formatCourseCardPrice = (course) => {
     }).format(Number(clpAmount))} CLP por usuario`;
   }
 
-  return `US$${course?.coursePrice ?? 0} por usuario`;
+  return `${new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(course?.coursePrice ?? 0))} CLP por usuario`;
 };
 
 const Course = ({course, progressSummary, size = "default", showPrice = true}) => {

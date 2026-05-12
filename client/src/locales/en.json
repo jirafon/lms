@@ -118,7 +118,7 @@
     "description": "Description",
     "category": "Category",
     "course_level": "Course Level",
-    "price_usd": "Per-user price (USD)",
+    "price_usd": "Per-user price (CLP)",
     "course_thumbnail": "Course Thumbnail",
     "new_image_selected": "New image selected",
     "cancel": "Cancel",

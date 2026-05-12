@@ -129,7 +129,7 @@ const CourseDetail = () => {
     : "Comenzar curso";
   const displayPriceLabel = flowCheckout?.available
     ? formatDisplayPrice({ amount: flowCheckout.amount, currency: flowCheckout.currency })
-    : formatDisplayPrice({ amount: course?.coursePrice ?? 0, currency: course?.currency || "USD" });
+    : formatDisplayPrice({ amount: course?.coursePrice ?? 0, currency: course?.currency || "CLP" });
 
   if (isLoading) return <h1>{t('common.loading')}</h1>;
   if (isError || !course) return <h1>{t('common.error')}</h1>;

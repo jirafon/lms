@@ -26,7 +26,11 @@ const formatCoursePrice = (value) => {
     return "NA";
   }
 
-  return `US$${value}`;
+  return `${new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(value))} CLP`;
 };
 
 const CourseTable = () => {

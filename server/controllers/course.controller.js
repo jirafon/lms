@@ -176,6 +176,7 @@ export const createCourse = async (req,res) => {
         const course = await Course.create({
             courseTitle,
             category,
+            currency: "CLP",
             creator:req.id
         });
 

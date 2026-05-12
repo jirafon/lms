@@ -9,6 +9,53 @@ import { useUpdateQuizProgressMutation } from '@/features/api/courseProgressApi'
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
+const getQuestionText = (question) => {
+  if (typeof question?.question === 'string' && question.question.trim()) {
+    return question.question;
+  }
+
+  if (typeof question?._doc?.question === 'string' && question._doc.question.trim()) {
+    return question._doc.question;
+  }
+
+  return '';
+};
+
+const getOptionText = (option) => {
+  if (typeof option === 'string' && option.trim()) {
+    return option;
+  }
+
+  if (typeof option?.text === 'string' && option.text.trim()) {
+    return option.text;
+  }
+
+  if (typeof option?._doc?.text === 'string' && option._doc.text.trim()) {
+    return option._doc.text;
+  }
+
+  return '';
+};
+
+const normalizeQuizPayload = (quizData) => {
+  if (!quizData) {
+    return null;
+  }
+
+  return {
+    ...quizData,
+    questions: (quizData.questions || []).map((question) => ({
+      ...question,
+      _id: question?._id || question?._doc?._id,
+      question: getQuestionText(question),
+      options: (question?.options || question?._doc?.options || []).map((option, index) => ({
+        _id: option?._id || option?._doc?._id || `${question?._id || question?._doc?._id || 'option'}-${index}`,
+        text: getOptionText(option),
+      })),
+    })),
+  };
+};
+
 const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
   const { t } = useTranslation();
   const [startQuiz, { isLoading: startingQuiz }] = useStartQuizMutation();
@@ -30,7 +77,6 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
       return;
     }
 
-    initializedQuizIdRef.current = quizId;
     let cancelled = false;
 
     const initializeQuiz = async () => {
@@ -41,9 +87,11 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
         if (cancelled) {
           return;
         }
-        setQuiz(result.quiz);
+        const normalizedQuiz = normalizeQuizPayload(result.quiz);
+        initializedQuizIdRef.current = quizId;
+        setQuiz(normalizedQuiz);
         setAttemptId(result.attemptId);
-        setAnswers(result.quiz.questions.map(q => ({
+        setAnswers((normalizedQuiz?.questions || []).map(q => ({
           questionId: q._id,
           selectedOptions: [],
           textAnswer: ''
@@ -65,6 +113,9 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
 
     return () => {
       cancelled = true;
+      if (initializedQuizIdRef.current !== quizId) {
+        initializedQuizIdRef.current = null;
+      }
     };
   }, [quizId, startQuiz]);
 
@@ -168,11 +219,11 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
         <form onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-8">
           {quiz.questions.map((q, idx) => (
             <div key={q._id} className="mb-6">
-              <div className="font-medium mb-2">{idx + 1}. {q.question}</div>
+              <div className="mb-2 font-medium text-slate-900">{idx + 1}. {q.question}</div>
               {q.type === 'multiple_choice' && (
                 <div className="space-y-2">
                   {q.options.map((opt, oidx) => (
-                    <label key={oidx} className="flex items-center gap-2">
+                    <label key={opt._id || oidx} className="flex items-center gap-2 text-slate-700">
                       <input
                         type="checkbox"
                         checked={answers[idx].selectedOptions.includes(opt.text)}
@@ -186,7 +237,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
               {q.type === 'true_false' && (
                 <div className="space-y-2">
                   {q.options.map((opt, oidx) => (
-                    <label key={oidx} className="flex items-center gap-2">
+                    <label key={opt._id || oidx} className="flex items-center gap-2 text-slate-700">
                       <input
                         type="radio"
                         name={`tf-${q._id}`}
