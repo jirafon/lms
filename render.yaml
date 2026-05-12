@@ -31,6 +31,22 @@ services:
         value: https://lms-client-ct7h.onrender.com
       - key: CORS_ORIGINS
         value: https://lms-client-ct7h.onrender.com
+      - key: MAILSERVER
+        sync: false
+      - key: MAILPORT
+        sync: false
+      - key: MAILUSER
+        sync: false
+      - key: PASSWORD
+        sync: false
+      - key: MAILSERVER3
+        sync: false
+      - key: MAILPORT3
+        sync: false
+      - key: MAILUSER3
+        sync: false
+      - key: PASSWORD3
+        sync: false
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
