@@ -20,6 +20,7 @@ import {
   Target,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import TakeQuiz from "@/components/TakeQuiz";
@@ -61,6 +62,7 @@ const getLectureStatus = ({ lectureProgress, isUnlocked }) => {
 const CourseProgress = ({ courseId: courseIdProp }) => {
   const params = useParams();
   const courseId = courseIdProp || params.courseId;
+  const { t } = useTranslation();
 
   const { data: courseData, isLoading: courseLoading, isError: courseError } =
     useGetCourseDetailWithStatusQuery(courseId);
@@ -124,7 +126,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
   const activeQuiz = quizData?.quiz;
 
   if (courseLoading || progressLoading) {
-    return <p>Loading...</p>;
+    return <p>{t("common.loading")}</p>;
   }
 
   if (courseError || progressError || !course || !progress) {
@@ -318,13 +320,11 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                   )}
                 </div>
 
-                {!activeLectureProgress?.watched && (
-                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    Aun no terminas el video de este capítulo. El quiz ya está disponible para que lo veas.
+                {!activeLectureProgress?.watched ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-700">
+                    Termina el video actual para iniciar la evaluación. Cuando termine, aquí aparecerá una pregunta por pantalla hasta llegar al resultado final.
                   </div>
-                )}
-
-                {quizLoading ? (
+                ) : quizLoading ? (
                   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600">
                     Cargando quiz...
                   </div>
