@@ -767,7 +767,17 @@ export const removeStudentFromDashboard = async (req, res) => {
 export const editCourse = async (req,res) => {
     try {
         const courseId = req.params.courseId;
-        const {courseTitle, subTitle, description, category, courseLevel, coursePrice} = req.body;
+        const {
+            courseTitle,
+            subTitle,
+            description,
+            category,
+            courseLevel,
+            coursePrice,
+            flowPricingEnabled,
+            flowPricingPrice,
+            flowPricingCurrency,
+        } = req.body;
         const thumbnail = req.file;
 
         if (!isValidObjectId(courseId)) {
@@ -817,6 +827,26 @@ export const editCourse = async (req,res) => {
             if (!isNaN(numericPrice)) {
                 updateData.coursePrice = numericPrice;
             }
+        }
+
+        const normalizedFlowEnabled =
+            flowPricingEnabled === true || flowPricingEnabled === "true";
+        const normalizedFlowCurrency =
+            typeof flowPricingCurrency === "string" && flowPricingCurrency.trim()
+                ? flowPricingCurrency.trim().toUpperCase()
+                : course.flowPricing?.currency || process.env.FLOW_CURRENCY || "CLP";
+        const normalizedFlowPrice =
+            flowPricingPrice !== undefined && flowPricingPrice !== null && flowPricingPrice !== ""
+                ? Number(flowPricingPrice)
+                : course.flowPricing?.price;
+
+        updateData.flowPricing = {
+            enabled: normalizedFlowEnabled,
+            currency: normalizedFlowCurrency,
+        };
+
+        if (Number.isFinite(normalizedFlowPrice) && normalizedFlowPrice >= 0) {
+            updateData.flowPricing.price = normalizedFlowPrice;
         }
 
         course = await Course.findByIdAndUpdate(courseId, updateData, { new: true });

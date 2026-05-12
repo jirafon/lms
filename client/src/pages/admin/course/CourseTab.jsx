@@ -55,6 +55,9 @@ const CourseTab = () => {
     category: "",
     courseLevel: "",
     coursePrice: "",
+    flowPricingEnabled: false,
+    flowPricingPrice: "",
+    flowPricingCurrency: "CLP",
     courseThumbnail: "",
   });
 
@@ -76,6 +79,9 @@ const CourseTab = () => {
         category: course.category || "",
         courseLevel: course.courseLevel || "",
         coursePrice: course.coursePrice || "",
+        flowPricingEnabled: Boolean(course.flowPricing?.enabled),
+        flowPricingPrice: course.flowPricing?.price ?? "",
+        flowPricingCurrency: course.flowPricing?.currency || "CLP",
         courseThumbnail: "",
       });
     }
@@ -99,6 +105,12 @@ const CourseTab = () => {
   };
   const selectCourseLevel = (value) => {
     setInput({ ...input, courseLevel: value });
+  };
+  const selectFlowCurrency = (value) => {
+    setInput({ ...input, flowPricingCurrency: value });
+  };
+  const toggleFlowPricing = (event) => {
+    setInput({ ...input, flowPricingEnabled: event.target.checked });
   };
   // get file
   const selectThumbnail = (e) => {
@@ -134,6 +146,16 @@ const CourseTab = () => {
     // Only append coursePrice if it has a valid numeric value
     if (input.coursePrice && input.coursePrice !== "" && input.coursePrice !== "undefined" && !isNaN(Number(input.coursePrice))) {
       formData.append("coursePrice", Number(input.coursePrice));
+    }
+
+    formData.append("flowPricingEnabled", String(Boolean(input.flowPricingEnabled)));
+    formData.append("flowPricingCurrency", input.flowPricingCurrency || "CLP");
+    if (
+      input.flowPricingPrice !== "" &&
+      input.flowPricingPrice !== "undefined" &&
+      !isNaN(Number(input.flowPricingPrice))
+    ) {
+      formData.append("flowPricingPrice", Number(input.flowPricingPrice));
     }
     
     // Only append courseThumbnail if a new file is selected
@@ -371,6 +393,55 @@ const CourseTab = () => {
                 placeholder="29"
                 className="w-fit"
               />
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label className="text-base">Flow checkout pricing</Label>
+                <p className="mt-1 text-sm text-slate-500">
+                  Set a dedicated Flow price per course in the payment currency, or leave this disabled and use backend conversion.
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={Boolean(input.flowPricingEnabled)}
+                  onChange={toggleFlowPricing}
+                />
+                Enable Flow pricing
+              </label>
+            </div>
+            <div className="mt-4 flex items-center gap-5">
+              <div>
+                <Label>Flow amount</Label>
+                <Input
+                  type="number"
+                  name="flowPricingPrice"
+                  value={input.flowPricingPrice}
+                  onChange={changeEventHandler}
+                  placeholder="29000"
+                  className="w-fit"
+                />
+              </div>
+              <div>
+                <Label>Flow currency</Label>
+                <Select
+                  value={input.flowPricingCurrency}
+                  onValueChange={selectFlowCurrency}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Flow currency</SelectLabel>
+                      <SelectItem value="CLP">CLP</SelectItem>
+                      <SelectItem value="UF">UF</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <div>

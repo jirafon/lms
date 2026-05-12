@@ -69,6 +69,7 @@ const CourseDetail = () => {
 
   const course = data?.course;
   const purchased = data?.purchased;
+  const flowCheckout = data?.checkoutOptions?.flow;
   const courseLevelLabel = {
     Beginner: t("course.beginner"),
     Medium: t("course.medium"),
@@ -106,6 +107,9 @@ const CourseDetail = () => {
   const continueLabel = progress?.courseProgress
     ? `Continuar desde ${nextUnlockedLecture?.lectureTitle || "tu progreso"}`
     : "Comenzar curso";
+  const flowPriceLabel = flowCheckout?.available
+    ? `${flowCheckout.currency}$${flowCheckout.amount}`
+    : null;
 
   if (isLoading) return <h1>{t('common.loading')}</h1>;
   if (isError || !course) return <h1>{t('common.error')}</h1>;
@@ -263,6 +267,11 @@ const CourseDetail = () => {
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
                         <p className="mt-1 text-3xl font-semibold">{course?.currency || "USD"}${course?.coursePrice ?? 0}</p>
+                        {flowPriceLabel ? (
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-emerald-300">
+                            Flow: {flowPriceLabel}
+                          </p>
+                        ) : null}
                         <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
                       </div>
                       <div className="text-right text-xs text-slate-400">
@@ -293,7 +302,7 @@ const CourseDetail = () => {
                     </Button>
                   </>
                 ) : (
-                  <BuyCourseButton courseId={courseId} />
+                  <BuyCourseButton courseId={courseId} flowCheckout={flowCheckout} />
                 )}
               </CardFooter>
             </Card>

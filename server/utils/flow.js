@@ -2,15 +2,39 @@ import crypto from "crypto";
 
 const FLOW_SANDBOX_URL = "https://sandbox.flow.cl/api";
 const FLOW_PRODUCTION_URL = "https://www.flow.cl/api";
+const FLOW_ENVIRONMENTS = {
+  production: "production",
+  sandbox: "sandbox",
+};
 
 const trimTrailingSlash = (value = "") => value.replace(/\/+$/, "");
+
+const getFlowEnvironment = () => {
+  return process.env.FLOW_ENV === FLOW_ENVIRONMENTS.SANDBOX
+    ? FLOW_ENVIRONMENTS.SANDBOX
+    : FLOW_ENVIRONMENTS.PRODUCTION;
+};
+
+const getFlowCredentials = () => {
+  if (getFlowEnvironment() === FLOW_ENVIRONMENTS.SANDBOX) {
+    return {
+      apiKey: process.env.FLOW_SANDBOX_API_KEY || process.env.FLOW_API_KEY,
+      secretKey: process.env.FLOW_SANDBOX_SECRET_KEY || process.env.FLOW_SECRET_KEY,
+    };
+  }
+
+  return {
+    apiKey: process.env.FLOW_PRODUCTION_API_KEY || process.env.FLOW_API_KEY,
+    secretKey: process.env.FLOW_PRODUCTION_SECRET_KEY || process.env.FLOW_SECRET_KEY,
+  };
+};
 
 const getFlowBaseUrl = () => {
   if (process.env.FLOW_API_BASE_URL || process.env.FLOW_BASE_URL) {
     return trimTrailingSlash(process.env.FLOW_API_BASE_URL || process.env.FLOW_BASE_URL);
   }
 
-  return process.env.FLOW_ENV === "production" ? FLOW_PRODUCTION_URL : FLOW_SANDBOX_URL;
+  return getFlowEnvironment() === FLOW_ENVIRONMENTS.PRODUCTION ? FLOW_PRODUCTION_URL : FLOW_SANDBOX_URL;
 };
 
 const normalizeFlowValue = (value) => {
@@ -26,10 +50,12 @@ const normalizeFlowValue = (value) => {
 };
 
 export const isFlowConfigured = () => {
-  return Boolean(process.env.FLOW_API_KEY && process.env.FLOW_SECRET_KEY);
+  const credentials = getFlowCredentials();
+  return Boolean(credentials.apiKey && credentials.secretKey);
 };
 
 export const signFlowParams = (params) => {
+  const { secretKey } = getFlowCredentials();
   const entries = Object.entries(params)
     .filter(([key, value]) => key !== "s" && value !== undefined && value !== null && value !== "")
     .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey));
@@ -39,7 +65,7 @@ export const signFlowParams = (params) => {
     .join("");
 
   return crypto
-    .createHmac("sha256", process.env.FLOW_SECRET_KEY)
+    .createHmac("sha256", secretKey)
     .update(payload)
     .digest("hex");
 };
@@ -67,7 +93,7 @@ const flowRequest = async (path, params, method = "GET") => {
 
   const signedParams = {
     ...params,
-    apiKey: process.env.FLOW_API_KEY,
+    apiKey: getFlowCredentials().apiKey,
   };
 
   const signature = signFlowParams(signedParams);
@@ -120,4 +146,15 @@ export const getFlowPaymentStatus = async (token) => {
 
 export const getConfiguredFlowCurrency = (fallbackCurrency) => {
   return process.env.FLOW_CURRENCY || fallbackCurrency || "CLP";
+};
+
+export const getFlowEnvironmentConfig = () => {
+  const credentials = getFlowCredentials();
+
+  return {
+    environment: getFlowEnvironment(),
+    baseUrl: getFlowBaseUrl(),
+    currency: getConfiguredFlowCurrency(),
+    isConfigured: Boolean(credentials.apiKey && credentials.secretKey),
+  };
 };

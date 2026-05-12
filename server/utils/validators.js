@@ -105,6 +105,26 @@ export const validateCoursePayload = (payload, { partial = false } = {}) => {
     }
   }
 
+  if (
+    payload.flowPricingEnabled !== undefined &&
+    ![true, false, "true", "false", ""].includes(payload.flowPricingEnabled)
+  ) {
+    errors.push("flowPricingEnabled must be a boolean");
+  }
+
+  if (payload.flowPricingPrice !== undefined && payload.flowPricingPrice !== null && payload.flowPricingPrice !== "") {
+    const numericFlowPrice = Number(payload.flowPricingPrice);
+    if (Number.isNaN(numericFlowPrice) || numericFlowPrice < 0) {
+      errors.push("flowPricingPrice must be a non-negative number");
+    }
+  }
+
+  if (payload.flowPricingCurrency !== undefined && payload.flowPricingCurrency !== null && payload.flowPricingCurrency !== "") {
+    if (typeof payload.flowPricingCurrency !== "string" || !payload.flowPricingCurrency.trim()) {
+      errors.push("flowPricingCurrency must be a non-empty string");
+    }
+  }
+
   return errors;
 };
 

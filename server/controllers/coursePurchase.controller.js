@@ -7,6 +7,7 @@ import { isValidObjectId } from "../utils/validators.js";
 import {
   createFlowPayment,
   getConfiguredFlowCurrency,
+  getFlowEnvironmentConfig,
   getFlowPaymentStatus,
   isFlowConfigured,
 } from "../utils/flow.js";
@@ -26,6 +27,146 @@ const FLOW_STATUS = {
   PAID: 2,
   REJECTED: 3,
   CANCELLED: 4,
+};
+
+const MIN_FLOW_AMOUNT_BY_CURRENCY = {
+  CLP: 350,
+};
+
+const getFlowMinimumAmount = (currency) => {
+  return MIN_FLOW_AMOUNT_BY_CURRENCY[String(currency || "").toUpperCase()] || null;
+};
+
+const getUsdToClpRate = () => {
+  const rate = Number(process.env.FLOW_USD_TO_CLP_RATE || process.env.USD_TO_CLP_RATE || 0);
+  return Number.isFinite(rate) && rate > 0 ? rate : null;
+};
+
+const resolveFlowCheckoutConfig = (course) => {
+  const providerConfig = getFlowEnvironmentConfig();
+  const flowCurrency = String(
+    course?.flowPricing?.currency || getConfiguredFlowCurrency(course?.currency)
+  ).toUpperCase();
+  const courseCurrency = String(course?.currency || "USD").toUpperCase();
+  const flowPricingEnabled = Boolean(course?.flowPricing?.enabled);
+  const flowPrice = Number(course?.flowPricing?.price);
+  const catalogPrice = Number(course?.coursePrice ?? 0);
+
+  if (!providerConfig.isConfigured) {
+    return {
+      available: false,
+      environment: providerConfig.environment,
+      currency: flowCurrency,
+      reason: "Flow payment provider is not configured.",
+    };
+  }
+
+  if (flowPricingEnabled) {
+    if (!Number.isFinite(flowPrice) || flowPrice <= 0) {
+      return {
+        available: false,
+        environment: providerConfig.environment,
+        currency: flowCurrency,
+        reason: "Flow pricing is enabled for this course but no valid Flow price is configured.",
+      };
+    }
+
+    const minimumAmount = getFlowMinimumAmount(flowCurrency);
+    if (minimumAmount && flowPrice < minimumAmount) {
+      return {
+        available: false,
+        environment: providerConfig.environment,
+        currency: flowCurrency,
+        amount: flowPrice,
+        reason: `Flow requires a minimum amount of ${minimumAmount} ${flowCurrency}.`,
+      };
+    }
+
+    return {
+      available: true,
+      environment: providerConfig.environment,
+      amount: flowPrice,
+      currency: flowCurrency,
+      source: "course_flow_price",
+      originalAmount: catalogPrice,
+      originalCurrency: courseCurrency,
+    };
+  }
+
+  if (!Number.isFinite(catalogPrice) || catalogPrice <= 0) {
+    return {
+      available: false,
+      environment: providerConfig.environment,
+      currency: flowCurrency,
+      reason: "Course price must be greater than zero to create a payment.",
+    };
+  }
+
+  if (courseCurrency === flowCurrency) {
+    const minimumAmount = getFlowMinimumAmount(flowCurrency);
+    if (minimumAmount && catalogPrice < minimumAmount) {
+      return {
+        available: false,
+        environment: providerConfig.environment,
+        currency: flowCurrency,
+        amount: catalogPrice,
+        reason: `Flow requires a minimum amount of ${minimumAmount} ${flowCurrency}.`,
+      };
+    }
+
+    return {
+      available: true,
+      environment: providerConfig.environment,
+      amount: catalogPrice,
+      currency: flowCurrency,
+      source: "catalog_price",
+      originalAmount: catalogPrice,
+      originalCurrency: courseCurrency,
+    };
+  }
+
+  if (courseCurrency === "USD" && flowCurrency === "CLP") {
+    const usdToClpRate = getUsdToClpRate();
+
+    if (!usdToClpRate) {
+      return {
+        available: false,
+        environment: providerConfig.environment,
+        currency: flowCurrency,
+        reason: "Set FLOW_USD_TO_CLP_RATE or configure Flow pricing on the course to enable Flow for USD catalog prices.",
+      };
+    }
+
+    const convertedAmount = Math.round(catalogPrice * usdToClpRate);
+    const minimumAmount = getFlowMinimumAmount(flowCurrency);
+    if (minimumAmount && convertedAmount < minimumAmount) {
+      return {
+        available: false,
+        environment: providerConfig.environment,
+        currency: flowCurrency,
+        amount: convertedAmount,
+        reason: `Flow requires a minimum amount of ${minimumAmount} ${flowCurrency}.`,
+      };
+    }
+
+    return {
+      available: true,
+      environment: providerConfig.environment,
+      amount: convertedAmount,
+      currency: flowCurrency,
+      source: "usd_conversion",
+      conversionRate: usdToClpRate,
+      originalAmount: catalogPrice,
+      originalCurrency: courseCurrency,
+    };
+  }
+
+  return {
+    available: false,
+    environment: providerConfig.environment,
+    currency: flowCurrency,
+    reason: `Flow checkout currency ${flowCurrency} does not match course currency ${courseCurrency}. Configure a matching Flow currency or Flow pricing for this course.`,
+  };
 };
 
 const getPublicServerUrl = (req) => {
@@ -243,11 +384,11 @@ export const createCheckoutSession = async (req, res) => {
       });
     }
 
-    const amount = Number(course.coursePrice ?? 0);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const flowCheckout = resolveFlowCheckoutConfig(course);
+    if (!flowCheckout.available) {
       return sendError(res, {
         status: 400,
-        message: "Course price must be greater than zero to create a payment.",
+        message: flowCheckout.reason,
       });
     }
 
@@ -255,12 +396,11 @@ export const createCheckoutSession = async (req, res) => {
     const serverBaseUrl = getPublicServerUrl(req);
     const confirmationUrl = `${serverBaseUrl}/api/v1/purchase/flow/confirm`;
     const returnUrl = `${serverBaseUrl}/api/v1/purchase/flow/return?courseId=${courseId}`;
-    const currency = getConfiguredFlowCurrency(course.currency);
     const flowResponse = await createFlowPayment({
       commerceOrder,
       subject: (course.courseTitle || "Course purchase").slice(0, 255),
-      currency,
-      amount,
+      currency: flowCheckout.currency,
+      amount: flowCheckout.amount,
       email: user.email,
       urlConfirmation: confirmationUrl,
       urlReturn: returnUrl,
@@ -280,7 +420,7 @@ export const createCheckoutSession = async (req, res) => {
       {
         courseId,
         userId,
-        amount,
+        amount: flowCheckout.amount,
         status: "pending",
         paymentId: String(flowResponse.flowOrder),
         paymentMethod: "flow",
@@ -289,7 +429,11 @@ export const createCheckoutSession = async (req, res) => {
           url: flowResponse.url,
           flowOrder: String(flowResponse.flowOrder),
           commerceOrder,
-          currency,
+          currency: flowCheckout.currency,
+          amountSource: flowCheckout.source,
+          conversionRate: flowCheckout.conversionRate,
+          originalAmount: flowCheckout.originalAmount,
+          originalCurrency: flowCheckout.originalCurrency,
         },
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -397,10 +541,14 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
     }
 
     course.lectures = getOrderedLectures(course.lectures);
+    const flowCheckout = resolveFlowCheckoutConfig(course);
 
     return sendSuccess(res, {
       course,
       purchased: !!purchased, // true if purchased, false otherwise
+      checkoutOptions: {
+        flow: flowCheckout,
+      },
     });
   } catch (error) {
     logger.error("Failed to get course purchase status", { error: error.message, courseId: req.params.courseId });
@@ -426,13 +574,16 @@ export const getAllPurchasedCourse = async (req, res) => {
 };
 
 export const getPaymentMethods = async (_req, res) => {
+  const providerConfig = getFlowEnvironmentConfig();
+
   return sendSuccess(res, {
     paymentMethods: isFlowConfigured()
       ? [
           {
             id: "flow",
             name: "Flow",
-            currency: process.env.FLOW_CURRENCY || "CLP",
+            currency: providerConfig.currency,
+            environment: providerConfig.environment,
           },
         ]
       : [],

@@ -1,5 +1,21 @@
 import mongoose from "mongoose"
 
+const flowPricingSchema = new mongoose.Schema({
+    enabled: {
+        type: Boolean,
+        default: false,
+    },
+    price: {
+        type: Number,
+        min: 0,
+    },
+    currency: {
+        type: String,
+        uppercase: true,
+        trim: true,
+    },
+}, { _id: false });
+
 const courseSchema = new mongoose.Schema({
     courseTitle:{
         type:String,
@@ -21,6 +37,13 @@ const courseSchema = new mongoose.Schema({
     currency: {
         type: String,
         default: 'USD'
+    },
+    flowPricing: {
+        type: flowPricingSchema,
+        default: () => ({
+            enabled: false,
+            currency: 'CLP',
+        }),
     },
     courseThumbnail:{
         type:String
