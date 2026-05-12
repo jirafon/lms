@@ -2,6 +2,20 @@ import { Badge } from "@/components/ui/badge";
 import React from "react";
 import { Link } from "react-router-dom";
 
+const formatSearchResultPrice = (course) => {
+  const clpAmount = course?.flowPricing?.enabled ? course?.flowPricing?.price : null;
+
+  if (clpAmount !== undefined && clpAmount !== null && !Number.isNaN(Number(clpAmount))) {
+    return `${new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(Number(clpAmount))} CLP por usuario`;
+  }
+
+  return `US$${course?.coursePrice ?? 0} por usuario`;
+};
+
 const SearchResult = ({ course }) => {
    
   return (
@@ -25,7 +39,7 @@ const SearchResult = ({ course }) => {
         </div>
       </Link>
       <div className="mt-4 md:mt-0 md:text-right w-full md:w-auto">
-        <h1 className="font-bold text-lg md:text-xl">US${course.coursePrice} por usuario</h1>
+        <h1 className="font-bold text-lg md:text-xl">{formatSearchResultPrice(course)}</h1>
       </div>
     </div>
   );

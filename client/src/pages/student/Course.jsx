@@ -18,6 +18,20 @@ const formatDate = (value) => {
   });
 };
 
+const formatCourseCardPrice = (course) => {
+  const clpAmount = course?.flowPricing?.enabled ? course?.flowPricing?.price : null;
+
+  if (clpAmount !== undefined && clpAmount !== null && !Number.isNaN(Number(clpAmount))) {
+    return `${new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(Number(clpAmount))} CLP por usuario`;
+  }
+
+  return `US$${course?.coursePrice ?? 0} por usuario`;
+};
+
 const Course = ({course, progressSummary, size = "default", showPrice = true}) => {
   const [imageError, setImageError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -66,7 +80,7 @@ const Course = ({course, progressSummary, size = "default", showPrice = true}) =
         </div>
         {showPrice && (
           <div className={`${isLarge ? "text-xl" : "text-lg"} font-bold`}>
-            <span>US${course.coursePrice} por usuario</span>
+            <span>{formatCourseCardPrice(course)}</span>
           </div>
         )}
         {progressSummary && (

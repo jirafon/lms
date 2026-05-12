@@ -308,9 +308,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">Evaluación del capítulo</h3>
                     <p className="mt-1 text-sm text-slate-600">
-                      {activeLectureProgress?.watched
-                        ? `Necesitas al menos ${activeQuiz?.passingScore || 70}% para desbloquear el próximo capítulo.`
-                        : "Termina de ver el video para habilitar este quiz."}
+                      {`Necesitas al menos ${activeQuiz?.passingScore || 70}% para desbloquear el próximo capítulo.`}
                     </p>
                   </div>
                   {activeLectureProgress?.quizAttempts > 0 && (
@@ -320,11 +318,13 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                   )}
                 </div>
 
-                {!activeLectureProgress?.watched ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    El quiz aparecerá apenas completes este capítulo.
+                {!activeLectureProgress?.watched && (
+                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Aun no terminas el video de este capítulo. El quiz ya está disponible para que lo veas.
                   </div>
-                ) : quizLoading ? (
+                )}
+
+                {quizLoading ? (
                   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600">
                     Cargando quiz...
                   </div>

@@ -55,6 +55,26 @@ const formatDate = (value) => {
   });
 };
 
+const formatDisplayPrice = ({ amount, currency }) => {
+  if (amount === undefined || amount === null || Number.isNaN(Number(amount))) {
+    return "$0";
+  }
+
+  if (currency === "CLP") {
+    return `${new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(Number(amount))} CLP`;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(amount));
+};
+
 const CourseDetail = () => {
   const { t } = useTranslation();
   const params = useParams();
@@ -107,9 +127,9 @@ const CourseDetail = () => {
   const continueLabel = progress?.courseProgress
     ? `Continuar desde ${nextUnlockedLecture?.lectureTitle || "tu progreso"}`
     : "Comenzar curso";
-  const flowPriceLabel = flowCheckout?.available
-    ? `${flowCheckout.currency}$${flowCheckout.amount}`
-    : null;
+  const displayPriceLabel = flowCheckout?.available
+    ? formatDisplayPrice({ amount: flowCheckout.amount, currency: flowCheckout.currency })
+    : formatDisplayPrice({ amount: course?.coursePrice ?? 0, currency: course?.currency || "USD" });
 
   if (isLoading) return <h1>{t('common.loading')}</h1>;
   if (isError || !course) return <h1>{t('common.error')}</h1>;
@@ -266,12 +286,7 @@ const CourseDetail = () => {
                     <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
-                        <p className="mt-1 text-3xl font-semibold">{course?.currency || "USD"}${course?.coursePrice ?? 0}</p>
-                        {flowPriceLabel ? (
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-emerald-300">
-                            Flow: {flowPriceLabel}
-                          </p>
-                        ) : null}
+                        <p className="mt-1 text-3xl font-semibold">{displayPriceLabel}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
                       </div>
                       <div className="text-right text-xs text-slate-400">
