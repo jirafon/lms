@@ -148,10 +148,18 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
 
     setSelectedLectureId(lectureItem.lecture._id);
     setVideoError(false);
+  };
 
-    if (!lectureItem.lectureProgress?.watched) {
-      await updateLectureProgress({ courseId, lectureId: lectureItem.lecture._id });
+  const handleLectureVideoEnded = async () => {
+    if (!activeLecture || activeLectureProgress?.watched) {
+      return;
+    }
+
+    try {
+      await updateLectureProgress({ courseId, lectureId: activeLecture._id }).unwrap();
       refetch();
+    } catch (error) {
+      toast.error("No se pudo actualizar el progreso del capítulo.");
     }
   };
 
@@ -247,9 +255,10 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                     key={activeLecture?._id}
                     src={activeLecture?.videoUrl}
                     controls
+                    controlsList="nodownload"
                     className="aspect-video w-full bg-black"
-                    onPlay={() => activeLecture && updateLectureProgress({ courseId, lectureId: activeLecture._id })}
-                    onEnded={() => activeLecture && updateLectureProgress({ courseId, lectureId: activeLecture._id })}
+                    onContextMenu={(event) => event.preventDefault()}
+                    onEnded={handleLectureVideoEnded}
                     onError={() => setVideoError(true)}
                   />
                 )}
