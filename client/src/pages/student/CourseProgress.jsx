@@ -71,7 +71,12 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
   const [selectedLectureId, setSelectedLectureId] = useState(null);
   const [videoError, setVideoError] = useState(false);
 
-  const { data: quizData } = useGetQuizByLectureQuery(selectedLectureId, {
+  const {
+    data: quizData,
+    isLoading: quizLoading,
+    isError: quizLoadError,
+    refetch: refetchQuiz,
+  } = useGetQuizByLectureQuery(selectedLectureId, {
     skip: !selectedLectureId,
   });
 
@@ -298,24 +303,46 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                 </div>
               )}
 
-              {activeQuiz && (
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
-                  <div className="mb-4 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Evaluación del capítulo</h3>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Necesitas al menos {activeQuiz.passingScore || 70}% para desbloquear el próximo capítulo.
-                      </p>
-                    </div>
-                    {activeLectureProgress?.quizAttempts > 0 && (
-                      <Badge variant="outline">
-                        Intentos: {activeLectureProgress.quizAttempts}
-                      </Badge>
-                    )}
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Evaluación del capítulo</h3>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {activeLectureProgress?.watched
+                        ? `Necesitas al menos ${activeQuiz?.passingScore || 70}% para desbloquear el próximo capítulo.`
+                        : "Termina de ver el video para habilitar este quiz."}
+                    </p>
                   </div>
-                  <TakeQuiz quizId={activeQuiz._id} onQuizCompleted={handleQuizComplete} />
+                  {activeLectureProgress?.quizAttempts > 0 && (
+                    <Badge variant="outline">
+                      Intentos: {activeLectureProgress.quizAttempts}
+                    </Badge>
+                  )}
                 </div>
-              )}
+
+                {!activeLectureProgress?.watched ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    El quiz aparecerá apenas completes este capítulo.
+                  </div>
+                ) : quizLoading ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600">
+                    Cargando quiz...
+                  </div>
+                ) : quizLoadError ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                    <p>No se pudo cargar el quiz de este capítulo.</p>
+                    <Button variant="outline" className="mt-3" onClick={() => refetchQuiz()}>
+                      Reintentar
+                    </Button>
+                  </div>
+                ) : activeQuiz ? (
+                  <TakeQuiz quizId={activeQuiz._id} onQuizCompleted={handleQuizComplete} />
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
+                    Este capítulo no tiene un quiz configurado todavía.
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
