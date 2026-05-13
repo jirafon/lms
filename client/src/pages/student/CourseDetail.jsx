@@ -92,6 +92,7 @@ const CourseDetail = () => {
   const flowCheckout = data?.checkoutOptions?.flow;
   const courseLevelLabel = {
     Beginner: t("course.beginner"),
+    Begginer: t("course.beginner"),
     Medium: t("course.medium"),
     Advance: t("course.advance"),
   }[course?.courseLevel] || t("course.beginner");

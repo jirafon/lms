@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 const formatSearchResultPrice = (course) => {
-  const clpAmount = course?.flowPricing?.enabled ? course?.flowPricing?.price : null;
+  const clpAmount = course?.flowPricing?.price;
 
   if (clpAmount !== undefined && clpAmount !== null && !Number.isNaN(Number(clpAmount))) {
     return `${new Intl.NumberFormat("es-CL", {
@@ -20,7 +21,17 @@ const formatSearchResultPrice = (course) => {
   }).format(Number(course?.coursePrice ?? 0))} CLP por usuario`;
 };
 
+const getCourseLevelLabel = (courseLevel, t) => {
+  return {
+    Beginner: t("course.beginner"),
+    Begginer: t("course.beginner"),
+    Medium: t("course.medium"),
+    Advance: t("course.advance"),
+  }[courseLevel] || courseLevel || t("course.beginner");
+};
+
 const SearchResult = ({ course }) => {
+  const { t } = useTranslation();
    
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-300 py-4 gap-4">
@@ -39,7 +50,7 @@ const SearchResult = ({ course }) => {
           <p className="text-sm text-gray-700">
             Intructor: <span className="font-bold">{course.creator?.name}</span>{" "}
           </p>
-          <Badge className="w-fit mt-2 md:mt-0">{course.courseLevel}</Badge>
+          <Badge className="w-fit mt-2 md:mt-0">{getCourseLevelLabel(course.courseLevel, t)}</Badge>
         </div>
       </Link>
       <div className="mt-4 md:mt-0 md:text-right w-full md:w-auto">

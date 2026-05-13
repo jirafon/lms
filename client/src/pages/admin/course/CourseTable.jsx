@@ -19,6 +19,7 @@ import {
 import { useGetCreatorCourseQuery, useLazyGetCourseStudentsQuery } from "@/features/api/courseApi";
 import { Edit, Users } from "lucide-react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 const formatCoursePrice = (value) => {
@@ -34,6 +35,7 @@ const formatCoursePrice = (value) => {
 };
 
 const CourseTable = () => {
+  const { t } = useTranslation();
     const {data, isLoading, error} = useGetCreatorCourseQuery();
   const [studentsDialogOpen, setStudentsDialogOpen] = useState(false);
   const [selectedCourseTitle, setSelectedCourseTitle] = useState("");
@@ -46,7 +48,7 @@ const CourseTable = () => {
     getCourseStudents(course._id);
   };
 
-  if(isLoading) return <h1>Loading...</h1>;
+  if(isLoading) return <h1>{t("common.loading")}</h1>;
   if(error) return <h1>Error loading courses.</h1>;
   if(!data || !Array.isArray(data.courses)) return <h1>No courses found.</h1>;
  

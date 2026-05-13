@@ -38,7 +38,8 @@
     "logout": "Logout",
     "login": "Login",
     "register": "Register",
-    "search_courses": "Search Courses"
+    "search_courses": "Search Courses",
+    "my_account": "My Account"
   },
   "student": {
     "no_enrolled_courses": "You are not enrolled in any course."
@@ -218,7 +219,9 @@
     "error_loading_quiz": "Error loading quiz",
     "sending": "Sending...",
     "submitting": "Submitting...",
-    "creating": "Creating..."
+    "creating": "Creating...",
+    "previous": "Previous",
+    "next": "Next"
   },
   "progress": {
     "progress": "Progress",

@@ -19,8 +19,10 @@ import {
   useUpdateUserMutation,
 } from "@/features/api/authApi";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const Profile = () => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [profilePhoto, setProfilePhoto] = useState("");
 
@@ -64,7 +66,7 @@ const Profile = () => {
     }
   }, [error, updateUserData, isSuccess, isError, refetch]);
 
-  if (isLoading) return <h1>Profile Loading...</h1>;
+  if (isLoading) return <h1>{t("common.loading")}</h1>;
 
   const user = data && data.user;
   const userRole = user?.lmsrole || user?.role;

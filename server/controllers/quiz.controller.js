@@ -395,18 +395,24 @@ export const startQuiz = async (req, res) => {
       });
     }
 
-    // Check if user has exceeded max attempts
-    const attemptCount = await QuizAttempt.countDocuments({
+    const existingAttempts = await QuizAttempt.find({
       userId,
       quizId
-    });
+    })
+      .select("attemptNumber")
+      .sort({ attemptNumber: -1 })
+      .lean();
 
-    if (attemptCount >= quiz.maxAttempts) {
+    if (existingAttempts.length >= quiz.maxAttempts) {
       return sendError(res, {
         status: 400,
         message: `Maximum attempts (${quiz.maxAttempts}) exceeded for this quiz`
       });
     }
+
+    const nextAttemptNumber = existingAttempts.length > 0
+      ? Math.max(...existingAttempts.map((attempt) => attempt.attemptNumber || 0)) + 1
+      : 1;
 
     // Create new attempt
     const attempt = new QuizAttempt({
@@ -414,7 +420,7 @@ export const startQuiz = async (req, res) => {
       userId,
       courseId: quiz.courseId,
       lectureId: quiz.lectureId,
-      attemptNumber: attemptCount + 1,
+      attemptNumber: nextAttemptNumber,
       status: 'in_progress'
     });
 

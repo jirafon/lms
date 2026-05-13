@@ -45,6 +45,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
+const VALID_COURSE_LEVELS = ["Beginner", "Medium", "Advance"];
+const DEFAULT_FLOW_CURRENCY = "CLP";
+
 const CourseTab = () => {
   const { t } = useTranslation();
   
@@ -72,16 +75,17 @@ const CourseTab = () => {
   useEffect(() => {
     if (courseByIdData?.course) { 
         const course = courseByIdData?.course;
+      const configuredPrice = course.flowPricing?.price ?? course.coursePrice ?? "";
       setInput({
         courseTitle: course.courseTitle || "",
         subTitle: course.subTitle || "",
         description: course.description || "",
         category: course.category || "",
         courseLevel: course.courseLevel || "",
-        coursePrice: course.coursePrice || "",
-        flowPricingEnabled: Boolean(course.flowPricing?.enabled),
-        flowPricingPrice: course.flowPricing?.price ?? "",
-        flowPricingCurrency: course.flowPricing?.currency || "CLP",
+        coursePrice: configuredPrice,
+        flowPricingEnabled: Boolean(course.flowPricing?.enabled ?? configuredPrice),
+        flowPricingPrice: configuredPrice,
+        flowPricingCurrency: course.flowPricing?.currency || DEFAULT_FLOW_CURRENCY,
         courseThumbnail: "",
       });
     }
@@ -97,6 +101,18 @@ const CourseTab = () => {
 
   const changeEventHandler = (e) => {
     const { name, value } = e.target;
+
+    if (name === "coursePrice") {
+      setInput({
+        ...input,
+        coursePrice: value,
+        flowPricingPrice: value,
+        flowPricingEnabled: value !== "" && value !== "undefined",
+        flowPricingCurrency: DEFAULT_FLOW_CURRENCY,
+      });
+      return;
+    }
+
     setInput({ ...input, [name]: value });
   };
 
@@ -141,21 +157,26 @@ const CourseTab = () => {
     formData.append("subTitle", input.subTitle);
     formData.append("description", input.description);
     formData.append("category", input.category);
-    formData.append("courseLevel", input.courseLevel);
+
+    if (VALID_COURSE_LEVELS.includes(input.courseLevel)) {
+      formData.append("courseLevel", input.courseLevel);
+    }
     
-    // Only append coursePrice if it has a valid numeric value
-    if (input.coursePrice && input.coursePrice !== "" && input.coursePrice !== "undefined" && !isNaN(Number(input.coursePrice))) {
-      formData.append("coursePrice", Number(input.coursePrice));
+    const normalizedPrice =
+      input.coursePrice !== "" &&
+      input.coursePrice !== "undefined" &&
+      !isNaN(Number(input.coursePrice))
+        ? Number(input.coursePrice)
+        : null;
+
+    if (normalizedPrice !== null) {
+      formData.append("coursePrice", normalizedPrice);
     }
 
-    formData.append("flowPricingEnabled", String(Boolean(input.flowPricingEnabled)));
-    formData.append("flowPricingCurrency", input.flowPricingCurrency || "CLP");
-    if (
-      input.flowPricingPrice !== "" &&
-      input.flowPricingPrice !== "undefined" &&
-      !isNaN(Number(input.flowPricingPrice))
-    ) {
-      formData.append("flowPricingPrice", Number(input.flowPricingPrice));
+    formData.append("flowPricingEnabled", String(normalizedPrice !== null));
+    formData.append("flowPricingCurrency", DEFAULT_FLOW_CURRENCY);
+    if (normalizedPrice !== null) {
+      formData.append("flowPricingPrice", normalizedPrice);
     }
     
     // Only append courseThumbnail if a new file is selected
@@ -367,7 +388,7 @@ const CourseTab = () => {
             <div>
               <Label>{t('course.course_level')}</Label>
               <Select
-                defaultValue={input.courseLevel}
+                value={VALID_COURSE_LEVELS.includes(input.courseLevel) ? input.courseLevel : undefined}
                 onValueChange={selectCourseLevel}
               >
                 <SelectTrigger className="w-[180px]">
@@ -398,53 +419,13 @@ const CourseTab = () => {
             </div>
           </div>
           <div className="rounded-lg border border-slate-200 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label className="text-base">Flow checkout pricing</Label>
-                <p className="mt-1 text-sm text-slate-500">
-                  Set a dedicated Flow price per course in the payment currency, or leave this disabled and use backend conversion.
-                </p>
-              </div>
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={Boolean(input.flowPricingEnabled)}
-                  onChange={toggleFlowPricing}
-                />
-                Enable Flow pricing
-              </label>
-            </div>
-            <div className="mt-4 flex items-center gap-5">
-              <div>
-                <Label>Flow amount</Label>
-                <Input
-                  type="number"
-                  name="flowPricingPrice"
-                  value={input.flowPricingPrice}
-                  onChange={changeEventHandler}
-                  placeholder="29000"
-                  className="w-fit"
-                />
-              </div>
-              <div>
-                <Label>Flow currency</Label>
-                <Select
-                  value={input.flowPricingCurrency}
-                  onValueChange={selectFlowCurrency}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Flow currency</SelectLabel>
-                      <SelectItem value="CLP">CLP</SelectItem>
-                      <SelectItem value="UF">UF</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <Label className="text-base">Flow</Label>
+            <p className="mt-1 text-sm text-slate-500">
+              Este precio se configura una sola vez y se usa como precio actual en Flow y en las tarjetas del curso en CLP.
+            </p>
+            <p className="mt-3 text-sm font-medium text-slate-700">
+              Moneda: {DEFAULT_FLOW_CURRENCY}
+            </p>
           </div>
           <div>
             <Label>{t('course.course_thumbnail')}</Label>

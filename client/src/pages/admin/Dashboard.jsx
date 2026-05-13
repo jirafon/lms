@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGetInstructorMetricsQuery } from "@/features/api/instructorApi";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const InstructorDashboard = () => {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useGetInstructorMetricsQuery();
 
-  if (isLoading) return <h1>Loading...</h1>;
+  if (isLoading) return <h1>{t("common.loading")}</h1>;
   if (isError || !data) {
     console.error("Failed to load instructor metrics", error);
     if (error?.status === 'PARSING_ERROR') {
