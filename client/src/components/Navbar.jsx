@@ -46,15 +46,18 @@ const Navbar = () => {
   }, [isSuccess, data, navigate, t]);
 
   return (
-    <div className="h-16 dark:bg-[#020817] bg-white border-b dark:border-b-gray-800 border-b-gray-200 fixed top-0 left-0 right-0 duration-300 z-10">
+    <div className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-[#e7dccd]/90 bg-[rgba(250,246,239,0.86)] backdrop-blur-xl duration-300 dark:border-b-gray-800 dark:bg-[#020817]/95">
       {/* Desktop */}
-      <div className="max-w-7xl mx-auto hidden md:flex justify-between items-center gap-10 h-full">
-        <div className="flex items-center gap-2">
-          <School size={"30"} />
+      <div className="mx-auto hidden h-full max-w-7xl items-center justify-between gap-10 px-4 md:flex sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#d7c8b4] bg-[linear-gradient(135deg,#fffdf8_0%,#f1e7d8_100%)] text-slate-900 shadow-sm">
+            <School size={22} />
+          </div>
           <Link to="/">
-            <h1 className="hidden md:block font-extrabold text-2xl">
-              Unbiax Learning
-            </h1>
+            <div className="hidden md:block">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-800/90">LMS</p>
+              <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Unbiax Learning</h1>
+            </div>
           </Link>
         </div>
         {/* User icons and dark mode icon  */}
@@ -72,7 +75,7 @@ const Navbar = () => {
                   <AvatarFallback>CN</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
+              <DropdownMenuContent className="w-56 border border-[#e7dccd] bg-[#fffdf9]/95 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
                 <DropdownMenuLabel>{t('navigation.my_account')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
@@ -101,7 +104,7 @@ const Navbar = () => {
           ) : (
             <div className="flex items-center gap-4">
               <Link to="/login">
-                <Button variant="outline">{t('navigation.login')}</Button>
+                <Button variant="outline" className="rounded-full border-[#d6c8b6] bg-white/80 text-slate-900 hover:bg-[#f4ede2] dark:border-slate-700 dark:bg-slate-900/70 dark:text-white dark:hover:bg-slate-800">{t('navigation.login')}</Button>
               </Link>
             </div>
           )}
@@ -109,11 +112,13 @@ const Navbar = () => {
       </div>
 
       {/* Mobile */}
-      <div className="md:hidden flex justify-between items-center h-full px-4">
-        <div className="flex items-center gap-2">
-          <School size={"24"} />
+      <div className="flex h-full items-center justify-between px-4 md:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d7c8b4] bg-[linear-gradient(135deg,#fffdf8_0%,#f1e7d8_100%)] text-slate-900 shadow-sm">
+            <School size={20} />
+          </div>
           <Link to="/">
-            <h1 className="font-extrabold text-xl">Unbiax Learning</h1>
+            <h1 className="font-serif text-xl font-semibold tracking-tight text-slate-950 dark:text-white">Unbiax Learning</h1>
           </Link>
         </div>
         <div className="flex items-center gap-2">
@@ -121,16 +126,16 @@ const Navbar = () => {
           <DarkMode />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="rounded-full border-[#d6c8b6] bg-white/80 text-slate-900 hover:bg-[#f4ede2] dark:border-slate-700 dark:bg-slate-900/70 dark:text-white dark:hover:bg-slate-800">
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent className="border-l border-[#e7dccd] bg-[linear-gradient(180deg,#f8f3ea_0%,#fffdf9_100%)] dark:border-slate-700 dark:bg-slate-950">
               <SheetHeader>
                 <SheetTitle>{t('navigation.menu')}</SheetTitle>
               </SheetHeader>
               <Separator className="mr-2" />
-              <nav className="flex flex-col space-y-4">
+              <nav className="mt-6 flex flex-col space-y-4 text-slate-800 dark:text-slate-100">
                 {user ? (
                   <>
                     {userRole === "instructor" && (
