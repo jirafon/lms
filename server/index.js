@@ -15,9 +15,6 @@ import instructorRoutes from "./routes/instructor.route.js";
 import { isProduction, logger } from "./utils/logger.js";
 
 dotenv.config({});
-
-// call database connection here
-connectDB();
 const app = express();
 
 const normalizeOrigin = (value) => {
@@ -85,8 +82,13 @@ const configuredOrigins = [
 const defaultDevOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://0.0.0.0:5173",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "http://0.0.0.0:3000",
+  "http://localhost:10000",
+  "http://127.0.0.1:10000",
+  "http://0.0.0.0:10000",
 ];
 
 const allowedOrigins = new Set(
@@ -107,7 +109,7 @@ const isLocalDevOrigin = (origin) => {
     return false;
   }
 
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin);
 };
 
 if (allowedOrigins.size === 0) {
@@ -220,4 +222,14 @@ const startServer = (port, attemptsRemaining = isProduction ? 1 : 5) => {
   server.listen(port);
 };
 
-startServer(PORT);
+const bootstrap = async () => {
+  try {
+    await connectDB();
+    startServer(PORT);
+  } catch (error) {
+    logger.error("Server startup aborted", { error: error.message });
+    process.exit(1);
+  }
+};
+
+bootstrap();

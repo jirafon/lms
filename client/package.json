@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "webpack serve --mode development",
-    "dev": "webpack serve --mode development",
+    "start": "node scripts/run-client.mjs start",
+    "dev": "node scripts/run-client.mjs dev",
     "build": "webpack --mode production",
     "preview": "serve -s dist -l 4173",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0"

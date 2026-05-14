@@ -3,24 +3,28 @@ services:
   - type: web
     name: lms-client
     env: static
-    buildCommand: npm run install-client && npm run build
-    staticPublishPath: ./client/dist
+    rootDir: client
+    buildCommand: npm ci && NODE_OPTIONS=--max-old-space-size=384 npm run build
+    staticPublishPath: dist
     envVars:
       - key: REACT_APP_API_BASE_URL
         value: https://lms-o8o8.onrender.com/api/v1
       - key: NODE_VERSION
-        value: 18.17.0
+        value: 20.11.1
 
   # Backend Server
   - type: web
     name: lms-server
     env: node
     plan: free
-    buildCommand: npm run install-server
-    startCommand: npm start
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: NODE_OPTIONS=--max-old-space-size=384 npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20.11.1
       - key: PORT
         value: 10000
       - key: MONGODB_URI
