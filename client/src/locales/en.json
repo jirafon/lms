@@ -70,6 +70,13 @@
     "footer_badge": "Institutional close",
     "footer_title": "A more refined, professional homepage built to scale corporate learning.",
     "footer_description": "Present your catalog with a more elegant visual identity, stronger content hierarchy, and a more consistent experience from the first scroll.",
+    "footer_capabilities_label": "Capabilities",
+    "footer_capabilities": [
+      "Private AI agents, workflows, and knowledge bases",
+      "GRC, privacy, risk, and operational governance",
+      "Document automation and regulatory monitoring",
+      "Corporate LMS for privacy, ethics, and compliance"
+    ],
     "footer_panel_label": "Catalog and enrollment",
     "footer_panel_text": "Clear per-user pricing and navigation ready for checkout and progress tracking.",
     "footer_cta": "Go to catalog"

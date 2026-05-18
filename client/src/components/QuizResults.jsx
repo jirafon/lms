@@ -2,14 +2,61 @@ import React from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Trophy, RefreshCw, Target } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Trophy, RefreshCw, Target, Bot } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useGetQuizResultsQuery } from '@/features/api/quizApi';
 import { useTranslation } from 'react-i18next';
 import { Progress } from './ui/progress';
 import { Alert, AlertDescription } from './ui/alert';
 
-const QuizResults = ({ attemptId, onRetry, onContinue }) => {
+const buildExplainErrorsPrompt = ({ score, questions }) => {
+  const incorrectQuestions = questions.filter((question) => !question.userAnswer?.isCorrect);
+  if (!incorrectQuestions.length) {
+    return 'Repasame los puntos clave de este quiz y como consolidar lo aprendido.';
+  }
+
+  const errorDetails = incorrectQuestions
+    .map((question, index) => {
+      const userAnswer = question.userAnswer?.textAnswer || question.userAnswer?.selectedOptions?.join(', ') || 'Sin respuesta';
+      const correctAnswer = Array.isArray(question.correctAnswer)
+        ? question.correctAnswer.join(', ')
+        : question.correctAnswer;
+
+      return [
+        `${index + 1}. Pregunta: ${question.question}`,
+        `Mi respuesta: ${userAnswer}`,
+        `Respuesta correcta: ${correctAnswer}`,
+        question.explanation ? `Explicacion disponible: ${question.explanation}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n\n');
+
+  return [
+    `Explicame mis errores en este quiz. Obtuve ${score}%.`,
+    'Quiero que me expliques por que falle cada una, que patron de error ves y como evitar repetirlo.',
+    errorDetails,
+  ].join('\n\n');
+};
+
+const buildRetryPrepPrompt = ({ score, questions }) => {
+  const incorrectQuestions = questions.filter((question) => !question.userAnswer?.isCorrect);
+  const weakTopics = incorrectQuestions
+    .map((question) => question.explanation || question.question)
+    .slice(0, 3)
+    .join(' | ');
+
+  return [
+    `Preparame para reintentar este quiz. Mi ultimo resultado fue ${score}%.`,
+    'Necesito un plan corto de repaso, 3 preguntas de practica y consejos concretos para mejorar en el siguiente intento.',
+    weakTopics ? `Temas donde falle: ${weakTopics}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+};
+
+const QuizResults = ({ attemptId, onRetry, onContinue, onTutorAction }) => {
   const { data, isLoading, error } = useGetQuizResultsQuery(attemptId);
   const { t } = useTranslation();
 
@@ -55,6 +102,7 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
   const score = attempt.percentage;
   const totalQuestions = questions.length;
   const correctAnswers = questions.filter((question) => question.userAnswer?.isCorrect).length;
+  const incorrectAnswers = questions.filter((question) => !question.userAnswer?.isCorrect).length;
   const timeTaken = attempt.timeSpent;
   const passed = attempt.passed;
 
@@ -186,8 +234,36 @@ const QuizResults = ({ attemptId, onRetry, onContinue }) => {
             })}
           </div>
         )}
-
-        <div className="flex gap-4 justify-center">
+        <div className="flex flex-wrap gap-4 justify-center">
+          {onTutorAction && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onTutorAction({
+                  prompt: buildExplainErrorsPrompt({ score, questions }),
+                  interactionType: 'quiz_errors',
+                })}
+                className="flex items-center gap-2"
+                disabled={incorrectAnswers === 0}
+              >
+                <Bot className="h-4 w-4" />
+                Explícame mis errores
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onTutorAction({
+                  prompt: buildRetryPrepPrompt({ score, questions }),
+                  interactionType: 'retry_prep',
+                })}
+                className="flex items-center gap-2"
+              >
+                <Bot className="h-4 w-4" />
+                Prepárame un reintento
+              </Button>
+            </>
+          )}
           {onRetry && (
             <Button variant="outline" onClick={onRetry} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />

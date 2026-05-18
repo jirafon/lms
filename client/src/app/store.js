@@ -7,6 +7,7 @@ import { courseProgressApi } from "@/features/api/courseProgressApi";
 import { quizApi } from "@/features/api/quizApi";
 import { certificateApi } from "@/features/api/certificateApi";
 import { instructorApi } from "@/features/api/instructorApi";
+import { aiTutorApi } from "@/features/api/aiTutorApi";
 
 export const appStore = configureStore({
     reducer: rootRedcuer,
@@ -17,6 +18,7 @@ export const appStore = configureStore({
         courseProgressApi.middleware,
         quizApi.middleware,
         certificateApi.middleware,
-        instructorApi.middleware // Added middleware for instructorApi
+        instructorApi.middleware,
+        aiTutorApi.middleware
     )
 });

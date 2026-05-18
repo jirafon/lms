@@ -12,6 +12,7 @@ import courseProgressRoute from "./routes/courseProgress.route.js";
 import quizRoute from "./routes/quiz.route.js";
 import certificateRoute from "./routes/certificate.route.js";
 import instructorRoutes from "./routes/instructor.route.js";
+import aiTutorRoute from "./routes/aiTutor.route.js";
 import { isProduction, logger } from "./utils/logger.js";
 
 dotenv.config({});
@@ -195,6 +196,7 @@ app.use("/api/v1/progress", courseProgressRoute);
 app.use("/api/v1/quiz", quizRoute);
 app.use("/api/v1/certificate", certificateRoute);
 app.use('/api/v1/instructor', instructorRoutes);
+app.use("/api/v1/ai-tutor", aiTutorRoute);
  
  
 // Instead of hard‐coding a port, read from process.env.PORT:

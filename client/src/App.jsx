@@ -19,6 +19,7 @@ import EditLecture from "./pages/admin/lecture/EditLecture";
 import CourseDetail from "./pages/student/CourseDetail";
 import CourseProgress from "./pages/student/CourseProgress";
 import SearchPage from "./pages/student/SearchPage";
+import { useTranslation } from "react-i18next";
 import {
   AdminRoute,
   AuthenticatedUser,
@@ -27,14 +28,10 @@ import {
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
 import { BrainCircuit, Link2, Mail, Phone, ShieldCheck } from "lucide-react";
 
-const footerCapabilities = [
-  "AI Agents, workflows y knowledge bases privadas",
-  "GRC, privacidad, riesgos y gobernanza operacional",
-  "Automatizacion documental y monitoreo regulatorio",
-  "LMS corporativo para privacidad, etica y compliance",
-];
-
 const HomeFooter = () => {
+  const { t } = useTranslation();
+  const footerCapabilities = t("home.footer_capabilities", { returnObjects: true });
+
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,#fbfaf7_0%,#f3ecdf_100%)] px-4 pb-24 pt-8 sm:px-6 lg:px-8">
       <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(15,23,42,0.14),transparent)]" />
@@ -58,7 +55,7 @@ const HomeFooter = () => {
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-[26px] border border-white/70 bg-white/70 p-5 shadow-sm backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Capacidades
+                {t("home.footer_capabilities_label")}
               </p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
                 {footerCapabilities.map((item) => (

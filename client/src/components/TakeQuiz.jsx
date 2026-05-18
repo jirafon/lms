@@ -68,7 +68,7 @@ const normalizeQuizPayload = (quizData) => {
   };
 };
 
-const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
+const TakeQuiz = ({ quizId, onQuizCompleted, onContinue, onTutorAction }) => {
   const { t } = useTranslation();
   const [startQuiz, { isLoading: startingQuiz }] = useStartQuizMutation();
   const [submitQuiz, { isLoading: submitting }] = useSubmitQuizMutation();
@@ -258,6 +258,7 @@ const TakeQuiz = ({ quizId, onQuizCompleted, onContinue }) => {
         results={results}
         onRetry={handleRetry}
         onContinue={onContinue}
+        onTutorAction={onTutorAction}
       />
     );
   }

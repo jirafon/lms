@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import AITutorPanel from "@/components/AITutorPanel";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
 import {
   useGetCourseProgressQuery,
@@ -72,6 +73,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
 
   const [selectedLectureId, setSelectedLectureId] = useState(null);
   const [videoError, setVideoError] = useState(false);
+  const [pendingTutorPrompt, setPendingTutorPrompt] = useState(null);
 
   const {
     data: quizData,
@@ -117,6 +119,10 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
       setSelectedLectureId(nextRecommendedLecture.lecture._id);
     }
   }, [nextRecommendedLecture, selectedLectureId]);
+
+  useEffect(() => {
+    setPendingTutorPrompt(null);
+  }, [activeLecture?._id]);
 
   const activeLecture =
     lectureItems.find((item) => item.lecture._id === selectedLectureId)?.lecture || nextRecommendedLecture?.lecture;
@@ -178,6 +184,22 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
       toast.error(`No alcanzaste el puntaje mínimo. Necesitas ${minimumScore}% para avanzar.`);
     }
     refetch();
+  };
+
+  const handleTutorAction = (payload) => {
+    const prompt = typeof payload === "string" ? payload : payload?.prompt;
+    const interactionType = typeof payload === "string" ? "freeform" : payload?.interactionType || "freeform";
+
+    if (!prompt || !activeLecture?._id) {
+      return;
+    }
+
+    setPendingTutorPrompt({
+      id: `${activeLecture._id}-${Date.now()}`,
+      prompt,
+      interactionType,
+    });
+    toast.success("El tutor recibió el contexto del quiz para ayudarte con el siguiente paso.");
   };
 
   return (
@@ -336,7 +358,11 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                     </Button>
                   </div>
                 ) : activeQuiz ? (
-                  <TakeQuiz quizId={activeQuiz._id} onQuizCompleted={handleQuizComplete} />
+                  <TakeQuiz
+                    quizId={activeQuiz._id}
+                    onQuizCompleted={handleQuizComplete}
+                    onTutorAction={handleTutorAction}
+                  />
                 ) : (
                   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">
                     Este capítulo no tiene un quiz configurado todavía.
@@ -348,6 +374,14 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
         </div>
 
         <div className="space-y-4">
+          <AITutorPanel
+            courseId={courseId}
+            lecture={activeLecture}
+            lectureProgress={activeLectureProgress}
+            quiz={activeQuiz}
+            pendingPrompt={pendingTutorPrompt}
+          />
+
           <Card className="border-slate-200/80 bg-white/90 shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl text-slate-900">Mapa del curso</CardTitle>
