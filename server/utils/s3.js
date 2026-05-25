@@ -1,18 +1,13 @@
 // utils/s3.js
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import fs from "fs";
+import { createS3Client, resolveS3BucketName, resolveS3Region } from "./s3Config.js";
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 // Custom function to encode URLs for S3 (using + for spaces instead of %20)
 const encodeS3Url = (key) => {
@@ -40,18 +35,12 @@ const getContentType = (filename) => {
 };
 
 export const uploadMedia = async (filePathOrBuffer, originalName) => {
-  const bucketName = process.env.S3_BUCKET_NAME;
-  const region = process.env.AWS_REGION;
-  
-  console.log("🔧 S3 Configuration Check:");
-  console.log(`   Bucket: ${bucketName}`);
-  console.log(`   Region: ${region}`);
-  console.log(`   Access Key: ${process.env.AWS_ACCESS_KEY_ID ? '✅ Set' : '❌ Missing'}`);
-  console.log(`   Secret Key: ${process.env.AWS_SECRET_ACCESS_KEY ? '✅ Set' : '❌ Missing'}`);
-  
+  const bucketName = resolveS3BucketName();
+  const region = resolveS3Region();
+
   if (!bucketName) {
-    console.error("❌ S3_BUCKET_NAME env var is not defined");
-    throw new Error("S3_BUCKET_NAME env var is not defined");
+    console.error("❌ S3 bucket configuration is not defined");
+    throw new Error("S3 bucket configuration is not defined");
   }
 
   // Create a file key (you can customize this as needed)
@@ -59,7 +48,6 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
   
   console.log(`📤 Starting S3 upload: ${fileKey}`);
   console.log(`📁 File: ${originalName}`);
-  console.log(`🪣 Bucket: ${bucketName}`);
   console.log(`📂 File path: ${filePathOrBuffer}`);
 
   // Read the file properly
@@ -103,13 +91,6 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     const url = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
     
     console.log(`✅ S3 upload successful: ${fileKey}`);
-    console.log(`🔗 Generated URL: ${url}`);
-    console.log(`🔍 URL components:`);
-    console.log(`   Protocol: https`);
-    console.log(`   Bucket: ${bucketName}`);
-    console.log(`   Region: ${region}`);
-    console.log(`   Key: ${fileKey}`);
-    console.log(`   Encoded Key: ${encodedKey}`);
     
     return { key: fileKey, url };
   } catch (error) {
@@ -120,10 +101,10 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
 };
 
 export const uploadVideo = async (filePathOrBuffer, originalName) => {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = resolveS3BucketName();
   if (!bucketName) {
-    console.error("❌ S3_BUCKET_NAME env var is not defined");
-    throw new Error("S3_BUCKET_NAME env var is not defined");
+    console.error("❌ S3 bucket configuration is not defined");
+    throw new Error("S3 bucket configuration is not defined");
   }
 
   // Create a file key for videos
@@ -131,7 +112,6 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
   
   console.log(`🎥 Starting S3 video upload: ${fileKey}`);
   console.log(`📁 Video: ${originalName}`);
-  console.log(`🪣 Bucket: ${bucketName}`);
   console.log(`📂 File path: ${filePathOrBuffer}`);
 
   // Read the file properly
@@ -181,12 +161,11 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
       console.log(`🔗 CloudFront URL: ${url}`);
     } else {
       // Fallback to S3 URL if CloudFront is not configured
-      const region = process.env.AWS_REGION;
+      const region = resolveS3Region();
       // IMPORTANT: Use custom encoding for S3 compatibility (spaces as +)
       const encodedKey = encodeS3Url(fileKey);
       url = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
       console.log(`✅ S3 video upload successful (S3): ${fileKey}`);
-      console.log(`🔗 S3 URL: ${url}`);
     }
     
     return { key: fileKey, url };
@@ -233,9 +212,9 @@ export const extractS3KeyFromUrl = (url) => {
 };
 
 export const deleteMediaFromS3 = async (key) => {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = resolveS3BucketName();
   if (!bucketName) {
-    console.warn("⚠️ S3_BUCKET_NAME is not defined; skipping deletion.");
+    console.warn("⚠️ S3 bucket configuration is not defined; skipping deletion.");
     return;
   }
   if (!key) {
@@ -244,7 +223,6 @@ export const deleteMediaFromS3 = async (key) => {
   }
 
   console.log(`🗑️ Starting S3 deletion: ${key}`);
-  console.log(`🪣 Bucket: ${bucketName}`);
 
   try {
     const deleteParams = {
@@ -262,9 +240,9 @@ export const deleteMediaFromS3 = async (key) => {
 
 export const deleteVideoFromS3 = async (key) => {
   try {
-    const bucketName = process.env.S3_BUCKET_NAME;
+    const bucketName = resolveS3BucketName();
     if (!bucketName) {
-      console.warn("⚠️ S3_BUCKET_NAME is not defined; skipping video deletion.");
+      console.warn("⚠️ S3 bucket configuration is not defined; skipping video deletion.");
       return;
     }
     if (!key) {
@@ -273,7 +251,6 @@ export const deleteVideoFromS3 = async (key) => {
     }
 
     console.log(`🎥 Starting S3 video deletion: ${key}`);
-    console.log(`🪣 Bucket: ${bucketName}`);
 
     const deleteParams = {
       Bucket: bucketName,

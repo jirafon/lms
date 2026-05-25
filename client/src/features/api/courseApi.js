@@ -20,22 +20,19 @@ export const courseApi = createApi({
     }),
     getSearchCourse:builder.query({
       query: ({searchQuery, categories, sortByPrice}) => {
-        // Build qiery string
-        let queryString = `/search?query=${encodeURIComponent(searchQuery)}`
+        const params = new URLSearchParams();
+        params.set("query", searchQuery || "");
 
-        // append cateogry 
-        if(categories && categories.length > 0) {
-          const categoriesString = categories.map(encodeURIComponent).join(",");
-          queryString += `&categories=${categoriesString}`; 
+        if (categories && categories.length > 0) {
+          categories.forEach((category) => params.append("categories", category));
         }
 
-        // Append sortByPrice is available
-        if(sortByPrice){
-          queryString += `&sortByPrice=${encodeURIComponent(sortByPrice)}`; 
+        if (sortByPrice) {
+          params.set("sortByPrice", sortByPrice);
         }
 
         return {
-          url:queryString,
+          url:`/search?${params.toString()}`,
           method:"GET", 
         }
       }

@@ -1,15 +1,17 @@
 // test-s3.js - Test script for S3 configuration
 import { uploadVideo, deleteVideoFromS3 } from './utils/s3.js';
 import dotenv from 'dotenv';
+import { resolveS3BucketName } from './utils/s3Config.js';
 
 dotenv.config();
 
 const testS3Connection = async () => {
   try {
     console.log('Testing S3 configuration...');
-    console.log('AWS Region:', process.env.AWS_REGION);
-    console.log('S3 Bucket:', process.env.S3_BUCKET_NAME);
-    console.log('CloudFront Domain:', process.env.CLOUDFRONT_DOMAIN || 'Not configured');
+
+    if (!resolveS3BucketName()) {
+      throw new Error('S3 bucket configuration is not defined');
+    }
     
     // Test with a simple text file
     const testContent = 'This is a test file for S3 upload';
@@ -20,7 +22,6 @@ const testS3Connection = async () => {
     
     console.log('Upload successful!');
     console.log('File key:', result.key);
-    console.log('File URL:', result.url);
     
     // Test deletion
     console.log('\nTesting video deletion...');
@@ -32,8 +33,8 @@ const testS3Connection = async () => {
   } catch (error) {
     console.error('❌ S3 configuration test failed:', error.message);
     console.log('\nPlease check:');
-    console.log('1. AWS credentials are set correctly');
-    console.log('2. S3 bucket exists and is accessible');
+    console.log('1. The legacy S3 connection is available to the AWS SDK runtime');
+    console.log('2. The configured S3 bucket exists and is accessible');
     console.log('3. IAM permissions are configured properly');
   }
 };

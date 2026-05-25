@@ -4,7 +4,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const navItems = [
   {
-    to: "dashboard",
+    to: "dashboard-v2",
     label: "Dashboard",
     icon: LayoutDashboard,
   },

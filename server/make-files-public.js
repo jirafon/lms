@@ -1,23 +1,22 @@
 // make-files-public.js
-import { S3Client, PutObjectAclCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { PutObjectAclCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import { createS3Client, resolveS3BucketName } from "./utils/s3Config.js";
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 const makeFilesPublic = async () => {
   try {
     console.log('🔧 Making S3 files publicly accessible...');
-    console.log('Bucket:', process.env.S3_BUCKET_NAME);
     
-    const bucketName = process.env.S3_BUCKET_NAME;
+    const bucketName = resolveS3BucketName();
+
+    if (!bucketName) {
+      console.error('❌ Missing S3 bucket configuration');
+      return;
+    }
     
     // List all objects in the bucket
     const listParams = {

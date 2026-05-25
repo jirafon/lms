@@ -4,6 +4,10 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 const formatSearchResultPrice = (course) => {
+  if (course?.quoteOnly) {
+    return "Contactenos para cotizar - Minimo 10 alumnos por grupo";
+  }
+
   const clpAmount = course?.flowPricing?.price;
 
   if (clpAmount !== undefined && clpAmount !== null && !Number.isNaN(Number(clpAmount))) {

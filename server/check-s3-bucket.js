@@ -1,26 +1,21 @@
-import { S3Client, GetBucketPolicyCommand, GetBucketAclCommand } from "@aws-sdk/client-s3";
+import { GetBucketPolicyCommand, GetBucketAclCommand } from "@aws-sdk/client-s3";
 import dotenv from 'dotenv';
+import { createS3Client, resolveS3BucketName } from './utils/s3Config.js';
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 async function checkS3Bucket() {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = resolveS3BucketName();
+
+  if (!bucketName) {
+    console.error('❌ Missing S3 bucket configuration');
+    return;
+  }
   
   console.log('🔍 Checking S3 Bucket Configuration');
   console.log('===================================\n');
-  
-  console.log(`🪣 Bucket Name: ${bucketName}`);
-  console.log(`🌍 Region: ${process.env.AWS_REGION}`);
-  console.log(`🔑 Access Key: ${process.env.AWS_ACCESS_KEY_ID ? '✅ Set' : '❌ Missing'}`);
-  console.log(`🔐 Secret Key: ${process.env.AWS_SECRET_ACCESS_KEY ? '✅ Set' : '❌ Missing'}\n`);
   
   try {
     // Check bucket ACL
@@ -76,14 +71,14 @@ async function checkS3Bucket() {
         "Effect": "Allow",
         "Principal": "*",
         "Action": "s3:GetObject",
-        "Resource": `arn:aws:s3:::${bucketName}/*`
+        "Resource": "arn:aws:s3:::<bucket-name>/*"
       }
     ]
   }, null, 2));
   
   console.log('\n📋 Next Steps:');
   console.log('1. Go to AWS S3 Console');
-  console.log(`2. Select bucket: ${bucketName}`);
+  console.log('2. Select the configured bucket');
   console.log('3. Go to "Permissions" tab');
   console.log('4. Add the bucket policy above');
   console.log('5. Make sure "Block public access" is disabled');

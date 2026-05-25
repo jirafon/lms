@@ -20,6 +20,10 @@ const formatDate = (value) => {
 };
 
 const getCourseCardPriceAmount = (course) => {
+  if (course?.quoteOnly) {
+    return "Contactenos para cotizar";
+  }
+
   const clpAmount = course?.flowPricing?.price;
 
   if (clpAmount !== undefined && clpAmount !== null && !Number.isNaN(Number(clpAmount))) {
@@ -80,7 +84,7 @@ const Course = ({course, progressSummary, size = "default", showPrice = true}) =
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/16 via-slate-950/0 to-transparent" />
         </div>
         <CardContent className={`${isLarge ? "px-6 py-5 space-y-4" : "px-5 py-4 space-y-3"}`}>
-          <h1 className={`truncate font-bold text-slate-950 hover:underline dark:text-slate-100 ${isLarge ? "text-xl" : "text-lg"}`}>
+          <h1 className={`line-clamp-3 min-h-[5rem] sm:line-clamp-2 sm:min-h-[3.5rem] font-bold leading-snug text-slate-950 hover:underline dark:text-slate-100 ${isLarge ? "text-xl" : "text-lg"}`}>
             {course.courseTitle}
           </h1>
           <div className="flex items-center justify-between">
@@ -104,7 +108,9 @@ const Course = ({course, progressSummary, size = "default", showPrice = true}) =
               <p className={`${isLarge ? "text-lg sm:text-xl" : "text-base sm:text-lg"} font-bold leading-none tracking-tight tabular-nums text-slate-950 dark:text-slate-100`}>
                 {getCourseCardPriceAmount(course)}
               </p>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">CLP por usuario</p>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                {course?.quoteOnly ? "Minimo 10 alumnos por grupo" : "CLP por usuario"}
+              </p>
             </div>
           )}
           {progressSummary && (

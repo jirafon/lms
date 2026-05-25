@@ -10,13 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { COURSE_CATEGORY_OPTIONS } from "@/constants/courseCategories";
 import { useCreateCourseMutation } from "@/features/api/courseApi";
 import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const AddCourse = () => {
+  const { t } = useTranslation();
   const [courseTitle, setCourseTitle] = useState("");
   const [category, setCategory] = useState("");
 
@@ -45,16 +48,15 @@ const AddCourse = () => {
     <div className="flex-1 mx-10">
       <div className="mb-4">
         <h1 className="font-bold text-xl">
-          Lets add course, add some basic course details for your new course
+          {t("course.create_course")}
         </h1>
         <p className="text-sm">
-          Lorem, ipsum dolor sit amet consectetur adipisicing elit. Possimus,
-          laborum!
+          {t("course.make_changes_description")}
         </p>
       </div>
       <div className="space-y-4">
         <div>
-          <Label>Title</Label>
+          <Label>{t("course.title")}</Label>
           <Input
             type="text"
             value={courseTitle}
@@ -63,49 +65,35 @@ const AddCourse = () => {
           />
         </div>
         <div>
-          <Label>Category</Label>
+          <Label>{t("course.category")}</Label>
           <Select onValueChange={getSelectedCategory}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select a category" />
+              <SelectValue placeholder={t("course.category")} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Category</SelectLabel>
-                <SelectItem value="Next JS">Next JS</SelectItem>
-                <SelectItem value="Data Science">Data Science</SelectItem>
-                <SelectItem value="Frontend Development">
-                  Frontend Development
-                </SelectItem>
-                <SelectItem value="Fullstack Development">
-                  Fullstack Development
-                </SelectItem>
-                <SelectItem value="MERN Stack Development">
-                  MERN Stack Development
-                </SelectItem>
-                <SelectItem value="Javascript">Javascript</SelectItem>
-                <SelectItem value="Python">Python</SelectItem>
-                <SelectItem value="Docker">Docker</SelectItem>
-                <SelectItem value="MongoDB">MongoDB</SelectItem>
-                <SelectItem value="HTML">HTML</SelectItem>
-                <SelectItem value="MPD">MPD</SelectItem>
-                <SelectItem value="Data Privacy">Privacidad de Datos</SelectItem>
-                <SelectItem value="Integrity">Integridad</SelectItem>
+                <SelectLabel>{t("course.category")}</SelectLabel>
+                {COURSE_CATEGORY_OPTIONS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {t(item.labelKey, { defaultValue: item.value })}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => navigate("/admin/course")}>
-            Back
+            {t("common.back")}
           </Button>
           <Button disabled={isLoading} onClick={createCourseHandler}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Please wait
+                {t("course.please_wait")}
               </>
             ) : (
-              "Create"
+              t("common.create")
             )}
           </Button>
         </div>

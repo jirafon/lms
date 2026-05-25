@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { User } from "./models/user.model.js";
 import { Course } from "./models/course.model.js";
+import { resolveS3BucketName, resolveS3Region } from "./utils/s3Config.js";
 
 dotenv.config();
 
@@ -14,6 +15,13 @@ const encodeS3Url = (key) => {
 const fixExistingUrls = async () => {
   try {
     console.log('🔧 Fixing existing URLs in database...');
+
+    const bucketName = resolveS3BucketName();
+    const region = resolveS3Region();
+
+    if (!bucketName) {
+      throw new Error('S3 bucket configuration is not defined');
+    }
     
     // Connect to MongoDB
     const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/lms";
@@ -32,8 +40,6 @@ const fixExistingUrls = async () => {
         const key = urlParts.slice(3).join('/'); // Remove protocol, bucket, and get key
         
         // Create new properly encoded URL
-        const bucketName = process.env.S3_BUCKET_NAME;
-        const region = process.env.AWS_REGION;
         const encodedKey = encodeS3Url(key);
         const newUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
         
@@ -61,8 +67,6 @@ const fixExistingUrls = async () => {
         const key = urlParts.slice(3).join('/'); // Remove protocol, bucket, and get key
         
         // Create new properly encoded URL
-        const bucketName = process.env.S3_BUCKET_NAME;
-        const region = process.env.AWS_REGION;
         const encodedKey = encodeS3Url(key);
         const newUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
         

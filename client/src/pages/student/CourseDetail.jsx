@@ -128,7 +128,9 @@ const CourseDetail = () => {
   const continueLabel = progress?.courseProgress
     ? `Continuar desde ${nextUnlockedLecture?.lectureTitle || "tu progreso"}`
     : "Comenzar curso";
-  const displayPriceLabel = flowCheckout?.available
+  const displayPriceLabel = course?.quoteOnly
+    ? "Contactenos para cotizar"
+    : flowCheckout?.available
     ? formatDisplayPrice({ amount: flowCheckout.amount, currency: flowCheckout.currency })
     : formatDisplayPrice({ amount: course?.coursePrice ?? 0, currency: course?.currency || "CLP" });
 
@@ -288,11 +290,15 @@ const CourseDetail = () => {
                       <div>
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
                         <p className="mt-1 text-3xl font-semibold">{displayPriceLabel}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Por usuario</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                          {course?.quoteOnly ? "Minimo 10 alumnos por grupo" : "Por usuario"}
+                        </p>
                       </div>
                       <div className="text-right text-xs text-slate-400">
                         <p>{courseLevelLabel}</p>
-                        <p className="mt-1">Acceso inmediato</p>
+                        <p className="mt-1">
+                          {course?.quoteOnly ? "Compra individual deshabilitada" : "Acceso inmediato"}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -317,6 +323,10 @@ const CourseDetail = () => {
                       {showProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
                     </Button>
                   </>
+                ) : course?.quoteOnly ? (
+                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Contactenos para cotizar este curso grupal. Minimo 10 alumnos por grupo.
+                  </div>
                 ) : (
                   <BuyCourseButton courseId={courseId} flowCheckout={flowCheckout} />
                 )}

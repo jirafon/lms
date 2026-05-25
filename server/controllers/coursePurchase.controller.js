@@ -44,6 +44,15 @@ const getUsdToClpRate = () => {
 
 const resolveFlowCheckoutConfig = (course) => {
   const providerConfig = getFlowEnvironmentConfig();
+  if (course?.quoteOnly) {
+    return {
+      available: false,
+      environment: providerConfig.environment,
+      currency: String(course?.currency || "CLP").toUpperCase(),
+      reason: "Contactenos para cotizar. Curso grupal para minimo 10 alumnos.",
+    };
+  }
+
   const flowCurrency = String(
     course?.flowPricing?.currency || getConfiguredFlowCurrency(course?.currency)
   ).toUpperCase();

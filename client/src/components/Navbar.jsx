@@ -1,4 +1,4 @@
-import { Menu, School } from "lucide-react";
+import { Menu } from "lucide-react";
 import React, { useEffect } from "react";
 import {
   DropdownMenu,
@@ -46,18 +46,17 @@ const Navbar = () => {
   }, [isSuccess, data, navigate, t]);
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-[#e7dccd]/90 bg-[rgba(250,246,239,0.86)] backdrop-blur-xl duration-300 dark:border-b-gray-800 dark:bg-[#020817]/95">
+    <div className="fixed left-0 right-0 top-0 z-10 h-20 border-b border-[#e7dccd]/90 bg-[rgba(250,246,239,0.86)] backdrop-blur-xl duration-300 md:h-24 dark:border-b-gray-800 dark:bg-[#020817]/95">
       {/* Desktop */}
       <div className="mx-auto hidden h-full max-w-7xl items-center justify-between gap-10 px-4 md:flex sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#d7c8b4] bg-[linear-gradient(135deg,#fffdf8_0%,#f1e7d8_100%)] text-slate-900 shadow-sm">
-            <School size={22} />
-          </div>
-          <Link to="/">
-            <div className="hidden md:block">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-800/90">LMS</p>
-              <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Unbiax Learning</h1>
-            </div>
+          <Link to="/" className="inline-flex items-center gap-2">
+            <img
+              src="/unbiax13.png"
+              alt="Unbiax"
+              className="h-[5.5rem] w-auto"
+            />
+            <p className="text-[33px] font-semibold uppercase leading-none tracking-[0.24em] text-amber-800/90">LMS</p>
           </Link>
         </div>
         {/* User icons and dark mode icon  */}
@@ -114,11 +113,13 @@ const Navbar = () => {
       {/* Mobile */}
       <div className="flex h-full items-center justify-between px-4 md:hidden">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d7c8b4] bg-[linear-gradient(135deg,#fffdf8_0%,#f1e7d8_100%)] text-slate-900 shadow-sm">
-            <School size={20} />
-          </div>
-          <Link to="/">
-            <h1 className="font-serif text-xl font-semibold tracking-tight text-slate-950 dark:text-white">Unbiax Learning</h1>
+          <Link to="/" className="inline-flex items-center gap-2">
+            <img
+              src="/unbiax13.png"
+              alt="Unbiax"
+              className="h-[4.5rem] w-auto"
+            />
+            <p className="text-[33px] font-semibold uppercase leading-none tracking-[0.24em] text-amber-800/90">LMS</p>
           </Link>
         </div>
         <div className="flex items-center gap-2">

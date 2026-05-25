@@ -48,6 +48,10 @@ const courseSchema = new mongoose.Schema({
     courseThumbnail:{
         type:String
     },
+    quoteOnly: {
+        type: Boolean,
+        default: false,
+    },
     enrolledStudents:[
         {
             type:mongoose.Schema.Types.ObjectId,

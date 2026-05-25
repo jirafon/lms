@@ -3,8 +3,6 @@ import { Input } from "@/components/ui/input";
 import {
   ArrowRight,
   BadgeCheck,
-  BookOpen,
-  CheckCircle2,
   GraduationCap,
   ShieldCheck,
   Sparkles,
@@ -104,64 +102,61 @@ const HeroSection = () => {
             <div className="relative flex items-center justify-between rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-300">{t("home.panel_eyebrow")}</p>
-                <p className="mt-1 text-lg font-semibold">{t("home.panel_title")}</p>
+                <p className="mt-1 text-lg font-semibold">{t("home.highlighted_title")}</p>
               </div>
               <div className="rounded-full border border-emerald-300/20 bg-emerald-400/12 px-3 py-1 text-xs font-semibold text-emerald-200">
-                {t("home.panel_status")}
+                {t("home.highlighted_status")}
               </div>
             </div>
 
-            <div className="relative mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-5 backdrop-blur-sm">
-                <BookOpen className="h-5 w-5 text-sky-300" />
-                <p className="mt-6 text-3xl font-semibold">12</p>
-                <p className="mt-1 text-sm text-slate-300">{t("home.panel_metric_courses")}</p>
-              </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-5 backdrop-blur-sm">
-                <GraduationCap className="h-5 w-5 text-amber-200" />
-                <p className="mt-6 text-3xl font-semibold">96%</p>
-                <p className="mt-1 text-sm text-slate-300">{t("home.panel_metric_progress")}</p>
-              </div>
+            <div className="relative mt-5 rounded-[28px] border border-amber-200/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100 backdrop-blur-sm">
+              <p className="font-semibold">{t("home.highlighted_novelty_title")}</p>
+              <p className="mt-1 text-amber-50/90">{t("home.highlighted_novelty_description")}</p>
             </div>
 
-            <div className="relative mt-4 rounded-[28px] border border-white/10 bg-white/8 p-5 backdrop-blur-sm">
-              <div className="flex items-center justify-between text-sm text-slate-300">
-                <span>{t("home.panel_featured_label")}</span>
-                <span>GRC</span>
-              </div>
-              <h3 className="mt-3 text-xl font-semibold leading-8">
-                {t("home.panel_featured_title")}
-              </h3>
-              <div className="mt-4 grid gap-3 text-sm text-slate-200">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span>Privacidad, compliance e IA responsable</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-sky-300" />
-                  <span>Trazabilidad de avance y evaluaciones</span>
+            <div className="relative mt-5 grid gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur-sm">
+                <img
+                  src="/course-thumbnails/ciberseguridad.png"
+                  alt="Ciberseguridad y Proteccion de la Informacion"
+                  className="h-16 w-24 rounded-lg object-cover"
+                />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-300">{t("search.categories.cybersecurity")}</p>
+                  <p className="mt-1 text-sm font-semibold leading-5">{t("home.highlighted_course_1")}</p>
                 </div>
               </div>
-              <div className="mt-5 space-y-3 text-sm text-slate-300">
-                <div className="flex items-center justify-between">
-                  <span>{t("home.panel_tracking_label")}</span>
-                  <span className="font-semibold text-white">{t("home.panel_tracking_value")}</span>
+
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur-sm">
+                <img
+                  src="/course-thumbnails/ley-karin.png"
+                  alt="Ley Karin - Prevencion del Acoso y Violencia en el Trabajo"
+                  className="h-16 w-24 rounded-lg object-cover"
+                />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-300">{t("search.categories.compliance")}</p>
+                  <p className="mt-1 text-sm font-semibold leading-5">{t("home.highlighted_course_2")}</p>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full w-[82%] rounded-full bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-300" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>{t("home.panel_assessments_label")}</span>
-                  <span className="font-semibold text-white">{t("home.panel_assessments_value")}</span>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur-sm">
+                <img
+                  src="/course-thumbnails/ia-responsable.png"
+                  alt="IA Responsable y Uso Seguro de Inteligencia Artificial"
+                  className="h-16 w-24 rounded-lg object-cover"
+                />
+                <div>
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-300">{t("search.categories.technology")}</p>
+                  <p className="mt-1 text-sm font-semibold leading-5">{t("home.highlighted_course_3")}</p>
                 </div>
               </div>
             </div>
 
             <div className="relative mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-200">
-              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">GRC</span>
-              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">Privacidad</span>
-              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">Ciberseguridad</span>
-              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">IA Responsable</span>
+              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">{t("search.categories.compliance")}</span>
+              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">{t("search.categories.data_privacy")}</span>
+              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">{t("search.categories.cybersecurity")}</span>
+              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2">{t("search.categories.technology")}</span>
             </div>
           </div>
         </div>

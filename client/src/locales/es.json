@@ -62,6 +62,13 @@
     "panel_tracking_value": "Completo",
     "panel_assessments_label": "Evaluaciones por capítulo",
     "panel_assessments_value": "8 activas",
+    "highlighted_title": "Cursos destacados",
+    "highlighted_status": "Actualizado",
+    "highlighted_novelty_title": "Novedad",
+    "highlighted_novelty_description": "Ahora contamos con curso de IA responsable y uso seguro para equipos corporativos.",
+    "highlighted_course_1": "Ciberseguridad y Proteccion de la Informacion",
+    "highlighted_course_2": "Ley Karin - Prevencion del Acoso y Violencia en el Trabajo",
+    "highlighted_course_3": "IA Responsable y Uso Seguro de Inteligencia Artificial",
     "courses_eyebrow": "Catálogo de aprendizaje",
     "courses_title": "Cursos diseñados para equipos regulados y programas de formación serios.",
     "courses_description": "Elige experiencias estructuradas de aprendizaje pensadas para implementar compliance, gobernanza y riesgo con más claridad y mejor finalización.",
@@ -84,6 +91,39 @@
   },
   "student": {
     "no_enrolled_courses": "No estás inscrito en ningún curso."
+  },
+  "search": {
+    "results_for": "Resultados para \"{{query}}\"",
+    "showing_results_for": "Mostrando resultados para",
+    "filter_options": "Opciones de filtro",
+    "sort_by": "Ordenar por",
+    "sort_by_price": "Ordenar por precio",
+    "low_to_high": "Menor a mayor",
+    "high_to_low": "Mayor a menor",
+    "category": "Categorías",
+    "course_not_found": "Curso no encontrado",
+    "course_not_found_description": "No encontramos el curso que estás buscando.",
+    "browse_all_courses": "Ver todos los cursos",
+    "categories": {
+
+    
+      "fullstack": "Desarrollo Fullstack",
+      "mern": "Desarrollo MERN Stack",
+     "seguridad": "Seguridad",
+     "desarrolloia": "Desarrollo IA",
+      "iaarch": "Arquitectura IA",
+      "mpd": "MPD",
+      "compliance": "Compliance",
+      "data_privacy": "Privacidad de Datos",
+      "ethics": "Ética",
+      "hsce": "HSCE",
+      "cybersecurity": "Ciberseguridad",
+      "technology": "Tecnología",
+      "mining": "Minería",
+      "health": "Salud",
+      "operational_safety": "Seguridad Operacional",
+      "business_continuity": "Continuidad Operacional"
+    }
   },
   "auth": {
     "login": "Iniciar sesión",

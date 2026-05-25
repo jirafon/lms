@@ -8,6 +8,10 @@
     "dev": "nodemon index.js",
     "seed:mpd": "node create-mpd-course.js",
     "seed:mercado-publico": "node create-mercado-publico-course.js",
+    "seed:upcoming": "node create-upcoming-courses.js",
+    "seed:upcoming:chapters": "node create-upcoming-course-lectures.js",
+    "seed:upcoming:commercials": "node update-upcoming-courses-commercials.js",
+    "verify:upcoming": "node verify-upcoming-courses-integrity.js",
     "seed:compliance": "npm run seed:mpd && npm run seed:mercado-publico",
     "test-s3": "node test-s3.js",
     "test-paypal": "node test-paypal.js"

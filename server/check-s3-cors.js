@@ -1,23 +1,21 @@
-import { S3Client, GetBucketCorsCommand } from "@aws-sdk/client-s3";
+import { GetBucketCorsCommand } from "@aws-sdk/client-s3";
 import dotenv from 'dotenv';
+import { createS3Client, resolveS3BucketName } from './utils/s3Config.js';
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 async function checkS3Cors() {
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = resolveS3BucketName();
+
+  if (!bucketName) {
+    console.error('❌ Missing S3 bucket configuration');
+    return;
+  }
   
   console.log('🔍 Checking S3 CORS Configuration');
   console.log('==================================\n');
-  
-  console.log(`🪣 Bucket Name: ${bucketName}\n`);
   
   try {
     const corsCommand = new GetBucketCorsCommand({ Bucket: bucketName });
@@ -57,7 +55,7 @@ async function checkS3Cors() {
   
   console.log('\n📋 CORS Setup Instructions:');
   console.log('1. Go to AWS S3 Console');
-  console.log(`2. Select bucket: ${bucketName}`);
+  console.log('2. Select the configured bucket');
   console.log('3. Go to "Permissions" tab');
   console.log('4. Scroll down to "Cross-origin resource sharing (CORS)"');
   console.log('5. Click "Edit" and add the CORS configuration above');

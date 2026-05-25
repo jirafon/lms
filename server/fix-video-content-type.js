@@ -1,17 +1,12 @@
-import { S3Client, CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from 'dotenv';
 import connectDB from './database/db.js';
 import { Lecture } from './models/lecture.model.js';
+import { createS3Client, resolveS3BucketName } from './utils/s3Config.js';
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 // Function to get correct content type
 const getContentType = (filename) => {
@@ -54,7 +49,13 @@ async function fixVideoContentTypes() {
     await connectDB();
     console.log('🔧 Fixing video content types in S3...\n');
     
-    const bucketName = process.env.S3_BUCKET_NAME;
+    const bucketName = resolveS3BucketName();
+
+    if (!bucketName) {
+      console.error('❌ Missing S3 bucket configuration');
+      return;
+    }
+
     const lectures = await Lecture.find({ videoUrl: { $exists: true, $ne: null } });
     
     if (lectures.length === 0) {
@@ -66,7 +67,6 @@ async function fixVideoContentTypes() {
     
     for (const lecture of lectures) {
       console.log(`🎥 Processing: ${lecture.lectureTitle}`);
-      console.log(`🔗 Current URL: ${lecture.videoUrl}`);
       
       const key = extractS3KeyFromUrl(lecture.videoUrl);
       if (!key) {

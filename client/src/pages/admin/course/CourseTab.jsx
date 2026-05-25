@@ -39,6 +39,7 @@ import {
   usePublishCourseMutation,
   useRemoveCourseMutation,
 } from "@/features/api/courseApi";
+import { COURSE_CATEGORY_OPTIONS } from "@/constants/courseCategories";
 import { Loader2, MoreVertical, Settings, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -313,74 +314,11 @@ const CourseTab = () => {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>{t('course.category')}</SelectLabel>
-                    
-                    {/* Desarrollo Web */}
-                    <SelectItem value="Next JS">Next JS</SelectItem>
-                    <SelectItem value="Frontend Development">Frontend Development</SelectItem>
-                    <SelectItem value="Fullstack Development">Fullstack Development</SelectItem>
-                    <SelectItem value="MERN Stack Development">MERN Stack Development</SelectItem>
-                    <SelectItem value="Javascript">Javascript</SelectItem>
-                    <SelectItem value="HTML">HTML</SelectItem>
-                    
-                    {/* Ciencia de Datos */}
-                    <SelectItem value="Data Science">Data Science</SelectItem>
-                    <SelectItem value="Python">Python</SelectItem>
-                    
-                    {/* DevOps y Bases de Datos */}
-                    <SelectItem value="Docker">Docker</SelectItem>
-                    <SelectItem value="MongoDB">MongoDB</SelectItem>
-                    
-                    {/* GRDC - Gobierno, Riesgo, Datos y Cumplimiento */}
-                    <SelectItem value="Governance">Gobierno Corporativo</SelectItem>
-                    <SelectItem value="Risk Management">Gestión de Riesgos</SelectItem>
-                    <SelectItem value="Data Governance">Gobierno de Datos</SelectItem>
-                    <SelectItem value="Compliance">Cumplimiento Normativo</SelectItem>
-                    <SelectItem value="Internal Audit">Auditoría Interna</SelectItem>
-                    <SelectItem value="Regulatory Compliance">Cumplimiento Regulatorio</SelectItem>
-                    
-                    {/* Ética y Responsabilidad */}
-                    <SelectItem value="Business Ethics">Ética Empresarial</SelectItem>
-                    <SelectItem value="Corporate Social Responsibility">Responsabilidad Social Corporativa</SelectItem>
-                    <SelectItem value="Anti-Corruption">Anticorrupción</SelectItem>
-                    <SelectItem value="Whistleblowing">Protección al Denunciante</SelectItem>
-                    
-                    {/* Coaching y Liderazgo Ejecutivo */}
-                    <SelectItem value="Executive Coaching">Coaching Ejecutivo</SelectItem>
-                    <SelectItem value="Leadership Development">Desarrollo de Liderazgo</SelectItem>
-                    <SelectItem value="Board Governance">Gobierno de Consejos</SelectItem>
-                    <SelectItem value="Strategic Leadership">Liderazgo Estratégico</SelectItem>
-                    <SelectItem value="Change Management">Gestión del Cambio</SelectItem>
-                    <SelectItem value="Executive Communication">Comunicación Ejecutiva</SelectItem>
-                    
-                    {/* Alta Dirección */}
-                    <SelectItem value="C-Suite Leadership">Liderazgo C-Suite</SelectItem>
-                    <SelectItem value="Board of Directors">Consejo de Administración</SelectItem>
-                    <SelectItem value="Corporate Strategy">Estrategia Corporativa</SelectItem>
-                    <SelectItem value="Financial Leadership">Liderazgo Financiero</SelectItem>
-                    <SelectItem value="Digital Transformation">Transformación Digital</SelectItem>
-                    
-                    {/* Cumplimiento Específico */}
-                    <SelectItem value="SOX Compliance">Cumplimiento SOX</SelectItem>
-                    <SelectItem value="GDPR Compliance">Cumplimiento GDPR</SelectItem>
-                    <SelectItem value="ISO Standards">Estándares ISO</SelectItem>
-                    <SelectItem value="Cybersecurity Compliance">Cumplimiento Ciberseguridad</SelectItem>
-                    
-                    {/* Gestión de Riesgos */}
-                    <SelectItem value="Operational Risk">Riesgo Operacional</SelectItem>
-                    <SelectItem value="Financial Risk">Riesgo Financiero</SelectItem>
-                    <SelectItem value="Strategic Risk">Riesgo Estratégico</SelectItem>
-                    <SelectItem value="Reputational Risk">Riesgo Reputacional</SelectItem>
-                    
-                    {/* Desarrollo Organizacional */}
-                    <SelectItem value="Organizational Development">Desarrollo Organizacional</SelectItem>
-                    <SelectItem value="Talent Management">Gestión del Talento</SelectItem>
-                    <SelectItem value="Succession Planning">Planificación de Sucesión</SelectItem>
-                    <SelectItem value="Performance Management">Gestión del Desempeño</SelectItem>
-                    
-                    {/* MPD, Privacidad e Integridad */}
-                    <SelectItem value="MPD">MPD</SelectItem>
-                    <SelectItem value="Data Privacy">Privacidad de Datos</SelectItem>
-                    <SelectItem value="Integrity">Integridad</SelectItem>
+                    {COURSE_CATEGORY_OPTIONS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {t(item.labelKey, { defaultValue: item.value })}
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>

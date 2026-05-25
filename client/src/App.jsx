@@ -9,7 +9,7 @@ import Courses from "./pages/student/Courses";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
 import Sidebar from "./pages/admin/Sidebar";
-import Dashboard from "./pages/admin/Dashboard";
+import DashboardV2 from "./pages/admin/DashboardV2";
 import StudentsDashboard from "./pages/admin/StudentsDashboard";
 import CourseTable from "./pages/admin/course/CourseTable";
 import AddCourse from "./pages/admin/course/AddCourse";
@@ -26,7 +26,7 @@ import {
   ProtectedRoute,
 } from "./components/ProtectedRoutes";
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
-import { BrainCircuit, Link2, Mail, Phone, ShieldCheck } from "lucide-react";
+import { BrainCircuit, Link2, ShieldCheck } from "lucide-react";
 
 const HomeFooter = () => {
   const { t } = useTranslation();
@@ -44,10 +44,10 @@ const HomeFooter = () => {
             Unbiax Platform
           </div>
           <h3 className="mt-5 max-w-2xl font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-            Unbiax Solutions
+            Unbiax
           </h3>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-700">
-            Plataforma enterprise para desarrollar agentes de IA,
+            Plataforma de soluciones de tranformación digital para mudar procesos a usar la IA responsablemente y con foco en compliance, gobernanza y aprendizaje corporativo. Diseñada para organizaciones que necesitan integrar
             automatizaciones y soluciones de gobernanza operacional bajo un
             enfoque seguro, trazable y compliant.
           </p>
@@ -102,23 +102,9 @@ const HomeFooter = () => {
           <div className="h-px bg-white/10" />
 
           <div className="space-y-4 text-sm text-slate-200">
-            <a
-              href="mailto:ncastillo@unbiax.com"
-              className="flex items-center gap-3 transition-colors hover:text-amber-200"
-            >
-              <Mail className="h-4 w-4 text-amber-700" />
-              <span>ncastillo@unbiax.com</span>
-            </a>
-            <a
-              href="tel:+56987375517"
-              className="flex items-center gap-3 transition-colors hover:text-amber-200"
-            >
-              <Phone className="h-4 w-4 text-amber-300" />
-              <span>+56 9 87375517</span>
-            </a>
             <div className="flex items-center gap-3 text-slate-300">
               <Link2 className="h-4 w-4 text-amber-300" />
-              <span>Soluciones enterprise con enfoque seguro y compliant</span>
+              <span>Contacto en hello@unbiax.com o al wsup +56 9 87375517</span>
             </div>
           </div>
 
@@ -217,11 +203,11 @@ const appRouter = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="course" replace />,
+            element: <Navigate to="dashboard-v2" replace />,
           },
           {
-            path: "dashboard",
-            element: <Dashboard />,
+            path: "dashboard-v2",
+            element: <DashboardV2 />,
           },
           {
             path: "students",

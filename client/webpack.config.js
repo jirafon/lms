@@ -15,6 +15,12 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: true });
 export default (_, argv) => {
   const isProduction = argv.mode === 'production';
   const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3010/api/v1';
+  const shouldGenerateSourceMap = !isProduction || process.env.GENERATE_SOURCEMAP === 'true';
+  const devtool = shouldGenerateSourceMap
+    ? isProduction
+      ? 'source-map'
+      : 'eval-cheap-module-source-map'
+    : false;
 
   return {
     mode: isProduction ? 'production' : 'development',
@@ -26,7 +32,14 @@ export default (_, argv) => {
       publicPath: '/',
       clean: true,
     },
-    devtool: isProduction ? 'source-map' : 'eval-cheap-module-source-map',
+    devtool,
+    cache: {
+      type: 'filesystem',
+      buildDependencies: {
+        config: [__filename],
+      },
+    },
+    parallelism: isProduction ? 4 : undefined,
     module: {
       rules: [
         {
@@ -109,6 +122,7 @@ export default (_, argv) => {
       },
     },
     optimization: {
+      minimize: isProduction,
       splitChunks: {
         chunks: 'all',
       },

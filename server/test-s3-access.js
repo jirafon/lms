@@ -1,26 +1,24 @@
 // test-s3-access.js
-import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import { createS3Client, resolveS3BucketName } from "./utils/s3Config.js";
 
 dotenv.config();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const s3 = createS3Client();
 
 const testS3Access = async () => {
   try {
     console.log('🔍 Testing S3 bucket access...');
-    console.log('Bucket:', process.env.S3_BUCKET_NAME);
-    console.log('Region:', process.env.AWS_REGION);
     
     // Test a known file URL from your logs
     const testKey = 'user_photos/1751784337549-WhatsApp Image 2025-06-25 at 00.27.40 (3).jpeg';
-    const bucketName = process.env.S3_BUCKET_NAME;
+    const bucketName = resolveS3BucketName();
+
+    if (!bucketName) {
+      console.error('❌ Missing S3 bucket configuration');
+      return;
+    }
     
     console.log('\n📁 Testing file access:', testKey);
     
@@ -40,18 +38,6 @@ const testS3Access = async () => {
       console.log('❌ File not accessible via S3 client');
       console.log('Error:', headError.message);
     }
-    
-    // Test public URL access
-    const publicUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${testKey}`;
-    console.log('\n🌐 Testing public URL access:');
-    console.log('URL:', publicUrl);
-    
-    // You can test this URL manually in your browser
-    console.log('\n📋 Manual test instructions:');
-    console.log('1. Copy this URL and paste it in your browser:');
-    console.log(publicUrl);
-    console.log('\n2. If you see the image, S3 is configured correctly');
-    console.log('3. If you get an error, the bucket policy needs to be updated');
     
   } catch (error) {
     console.error('❌ S3 access test failed:', error.message);
