@@ -244,15 +244,31 @@ export const searchCourse = async (req,res) => {
 
 export const getPublishedCourse = async (_,res) => {
     try {
-        const courses = await Course.find({isPublished:true}).populate({path:"creator", select:"name photoUrl"});
+        const courses = await Course.find({isPublished:true})
+            .populate({ path:"creator", select:"name photoUrl" })
+            .populate({ path:"lectures", select:"lectureTitle lectureDescription lectureOrder" });
         if(!courses){
             return sendError(res, {
                 status: 404,
                 message:"Course not found"
             })
         }
+
+        const normalizedCourses = courses.map((course) => {
+            const normalizedLectures = getOrderedLectures(course.lectures || []).map((lecture) => ({
+                _id: lecture._id,
+                lectureTitle: lecture.lectureTitle,
+                lectureDescription: lecture.lectureDescription,
+                lectureOrder: lecture.lectureOrder,
+            }));
+
+            const courseObject = course.toObject();
+            courseObject.lectures = normalizedLectures;
+            return courseObject;
+        });
+
         return sendSuccess(res, {
-            courses,
+            courses: normalizedCourses,
         })
     } catch (error) {
         logger.error("Failed to get published courses", { error: error.message });

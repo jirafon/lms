@@ -50,7 +50,14 @@ const getCourseLevelLabel = (courseLevel, t) => {
   }[courseLevel] || courseLevel || t("course.beginner");
 };
 
-const Course = ({course, progressSummary, size = "default", showPrice = true}) => {
+const Course = ({
+  course,
+  progressSummary,
+  size = "default",
+  showPrice = true,
+  onCardClick,
+  disableNavigation = false,
+}) => {
   const { t } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -66,8 +73,13 @@ const Course = ({course, progressSummary, size = "default", showPrice = true}) =
   const courseProgress = progressSummary?.progress || 0;
   const isLarge = size === "large";
 
-  return (
-    <Link to={`/course-detail/${course._id}`}>
+  const handleCardClick = () => {
+    if (typeof onCardClick === "function") {
+      onCardClick(course);
+    }
+  };
+
+  const cardContent = (
       <Card className="overflow-hidden rounded-[30px] border border-[#e6ddd0] bg-[linear-gradient(180deg,#fffdf9_0%,#ffffff_100%)] shadow-[0_18px_45px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900">
         <div className="relative">
           <img
@@ -134,6 +146,23 @@ const Course = ({course, progressSummary, size = "default", showPrice = true}) =
           )}
         </CardContent>
       </Card>
+  );
+
+  if (disableNavigation) {
+    return (
+      <button
+        type="button"
+        onClick={handleCardClick}
+        className="w-full text-left"
+      >
+        {cardContent}
+      </button>
+    );
+  }
+
+  return (
+    <Link to={`/course-detail/${course._id}`} onClick={handleCardClick}>
+      {cardContent}
     </Link>
   );
 };

@@ -62,7 +62,8 @@ export const register = async (req,res) => {
         await User.create({
             name,
             email,
-            password:hashedPassword
+            password:hashedPassword,
+            lmsrole: "student",
         });
         return sendSuccess(res, {
             status: 201,

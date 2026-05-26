@@ -1,16 +1,78 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Course from "./Course";
 import { useGetPublishedCourseQuery } from "@/features/api/courseApi";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const HOME_SELECTED_COURSE_KEY = "homeSelectedCourseId";
  
 const Courses = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const {data, isLoading, isError} = useGetPublishedCourseQuery();
+  const courses = data?.courses ?? [];
+
+  const handleCourseSelection = (courseId) => {
+    setSelectedCourseId(courseId);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(HOME_SELECTED_COURSE_KEY, courseId);
+    }
+  };
+
+  const handleCourseCardClick = (course) => {
+    if (!course?._id) {
+      return;
+    }
+    handleCourseSelection(course._id);
+    setIsCourseModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const persistedCourseId = window.sessionStorage.getItem(HOME_SELECTED_COURSE_KEY);
+    if (persistedCourseId) {
+      setSelectedCourseId(persistedCourseId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!courses.length) {
+      setSelectedCourseId("");
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(HOME_SELECTED_COURSE_KEY);
+      }
+      return;
+    }
+
+    if (!selectedCourseId || !courses.some((course) => course._id === selectedCourseId)) {
+      handleCourseSelection(courses[0]._id);
+    }
+  }, [courses, selectedCourseId]);
+
+  const selectedCourse = useMemo(
+    () => courses.find((course) => course._id === selectedCourseId),
+    [courses, selectedCourseId]
+  );
+
+  const selectedCourseDescription = useMemo(() => {
+    const rawDescription = selectedCourse?.description || selectedCourse?.subTitle || "";
+    return rawDescription.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  }, [selectedCourse]);
  
   if(isError) return <h1>{t("home.courses_error")}</h1>
 
@@ -56,9 +118,76 @@ const Courses = () => {
               <CourseSkeleton key={index} />
             ))
           ) : (
-           data?.courses && data.courses.map((course, index) => <Course key={index} course={course} size="large"/>) 
+           courses.map((course) => (
+            <Course
+              key={course._id}
+              course={course}
+              size="large"
+              onCardClick={handleCourseCardClick}
+              disableNavigation
+            />
+           ))
           )}
         </div>
+
+        <Dialog open={isCourseModalOpen} onOpenChange={setIsCourseModalOpen}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedCourse?.courseTitle || "Curso"}
+              </DialogTitle>
+              <DialogDescription>
+                Contenido del curso
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Descripcion
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  {selectedCourseDescription || "Este curso no tiene descripcion disponible por ahora."}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  Capitulos
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {(selectedCourse?.lectures || []).length > 0 ? (
+                    selectedCourse.lectures.map((lecture, index) => (
+                      <li
+                        key={lecture._id || `${lecture.lectureTitle}-${index}`}
+                        className="rounded-xl border border-[#ebe3d8] bg-[#fdfaf5] px-4 py-2 text-sm text-slate-700"
+                      >
+                        {lecture.lectureOrder || index + 1}. {lecture.lectureTitle || "Capitulo sin titulo"}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-xl border border-dashed border-[#e7dccd] bg-[#fdfaf6] px-4 py-3 text-sm text-slate-500">
+                      Este curso aun no tiene capitulos publicados.
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsCourseModalOpen(false);
+                    navigate("/login");
+                  }}
+                  className="w-full rounded-xl bg-[#111827] text-white hover:bg-[#1f2937]"
+                >
+                  Comprar curso
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   );
