@@ -120,16 +120,16 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
     }
   }, [nextRecommendedLecture, selectedLectureId]);
 
-  useEffect(() => {
-    setPendingTutorPrompt(null);
-  }, [activeLecture?._id]);
-
   const activeLecture =
     lectureItems.find((item) => item.lecture._id === selectedLectureId)?.lecture || nextRecommendedLecture?.lecture;
   const activeLectureProgress = activeLecture
     ? progressByLectureId.get(String(activeLecture._id))
     : null;
   const activeQuiz = quizData?.quiz;
+
+  useEffect(() => {
+    setPendingTutorPrompt(null);
+  }, [activeLecture?._id]);
 
   if (courseLoading || progressLoading) {
     return <p>{t("common.loading")}</p>;
