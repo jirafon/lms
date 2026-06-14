@@ -79,7 +79,12 @@
   },
   "student": {
     "no_enrolled_courses": "No estás inscrito en ningún curso.",
-    "instructor_no_enrolled_courses": "Como instructor, tus cursos se gestionan en el panel de administración. No aparecen aquí hasta que te inscribas como estudiante."
+    "instructor_no_enrolled_courses": "Como instructor, tus cursos se gestionan en el panel de administración. No aparecen aquí hasta que te inscribas como estudiante.",
+    "enrolled_courses_title": "Cursos inscritos",
+    "enrolled_courses_description": "Cursos en los que estás participando como estudiante.",
+    "instructor_courses_title": "Tus cursos",
+    "instructor_courses_description": "Cursos que creaste y gestionas como instructor.",
+    "instructor_courses_error": "No se pudieron cargar tus cursos de instructor."
   },
   "search": {
     "results_for": "Resultados para \"{{query}}\"",

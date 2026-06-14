@@ -1,28 +1,61 @@
 import express from "express";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { upload, handleMulterError } from "../utils/multer.js";
-import { uploadMedia, uploadVideo, resolveS3Key } from "../utils/s3.js";
+import { uploadMedia, uploadVideo, getS3KeyCandidates } from "../utils/s3.js";
 import { createS3Client, resolveS3BucketName } from "../utils/s3Config.js";
 import { sendError, sendSuccess } from "../utils/apiResponse.js";
 import { logger } from "../utils/logger.js";
 
 const router = express.Router();
 const s3 = createS3Client();
-const ALLOWED_PUBLIC_S3_PREFIXES = ["user_photos/"];
+const ALLOWED_PUBLIC_S3_PREFIXES = ["user_photos/", "videos/"];
 
 const isAllowedPublicS3Key = (key) =>
   typeof key === "string" &&
   ALLOWED_PUBLIC_S3_PREFIXES.some((prefix) => key.startsWith(prefix));
 
+const getLegacyMediaCandidates = (query = {}) => {
+  const rawKey = typeof query.key === "string" ? query.key.trim() : "";
+  const legacyKey = typeof query.legacyKey === "string" ? query.legacyKey.trim() : "";
+  const publicId = typeof query.publicId === "string" ? query.publicId.trim() : "";
+  const legacyUrl = typeof query.url === "string" ? query.url.trim() : "";
+
+  return getS3KeyCandidates({
+    s3Key: rawKey,
+    key: legacyKey || rawKey,
+    publicId,
+    url: legacyUrl || (rawKey.startsWith("http") ? rawKey : ""),
+  }).filter(isAllowedPublicS3Key);
+};
+
+const streamS3Object = async ({ bucketName, candidates, range }) => {
+  let lastError;
+
+  for (const candidate of candidates) {
+    try {
+      return await s3.send(
+        new GetObjectCommand({
+          Bucket: bucketName,
+          Key: candidate,
+          ...(range ? { Range: range } : {}),
+        })
+      );
+    } catch (error) {
+      lastError = error;
+      if (error?.name !== "NoSuchKey" && error?.$metadata?.httpStatusCode !== 404) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+};
+
 router.get("/asset", async (req, res) => {
   try {
-    const rawKey = typeof req.query.key === "string" ? req.query.key.trim() : "";
-    let key = resolveS3Key({ key: rawKey, url: rawKey });
-    if (key) {
-      key = key.replace(/\+/g, " ");
-    }
+    const candidates = getLegacyMediaCandidates(req.query);
 
-    if (!key || !isAllowedPublicS3Key(key)) {
+    if (!candidates.length) {
       return sendError(res, {
         status: 400,
         message: "Invalid media key",
@@ -37,15 +70,25 @@ router.get("/asset", async (req, res) => {
       });
     }
 
-    const result = await s3.send(
-      new GetObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-      })
-    );
+    const result = await streamS3Object({
+      bucketName,
+      candidates,
+      range: req.headers.range,
+    });
 
+    const statusCode = req.headers.range && result.ContentRange ? 206 : 200;
+    res.status(statusCode);
     res.setHeader("Content-Type", result.ContentType || "application/octet-stream");
+    res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Cache-Control", "public, max-age=3600");
+
+    if (result.ContentLength !== undefined) {
+      res.setHeader("Content-Length", String(result.ContentLength));
+    }
+
+    if (result.ContentRange) {
+      res.setHeader("Content-Range", result.ContentRange);
+    }
 
     if (result.Body?.pipe) {
       result.Body.pipe(res);
@@ -65,6 +108,8 @@ router.get("/asset", async (req, res) => {
     logger.error("Failed to stream media asset", {
       error: error.message,
       key: req.query?.key,
+      publicId: req.query?.publicId,
+      legacyKey: req.query?.legacyKey,
     });
 
     return sendError(res, {

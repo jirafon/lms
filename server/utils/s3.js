@@ -23,21 +23,76 @@ export const isS3MediaUrl = (url) => {
   );
 };
 
+export const isLegacyExternalMediaUrl = (url) => {
+  if (!url || typeof url !== "string") {
+    return false;
+  }
+
+  return url.includes("cloudinary.com") || url.includes("res.cloudinary");
+};
+
 export const looksLikeS3Key = (value) => {
   if (!value || typeof value !== "string") return false;
   return value.includes("/") && !value.startsWith("http");
 };
 
-export const resolveS3Key = ({ s3Key, key, publicId, url } = {}) => {
-  if (s3Key) return s3Key;
-  if (key) return key;
-  if (publicId && (looksLikeS3Key(publicId) || isS3MediaUrl(url))) {
-    return publicId;
+const expandS3KeyVariants = (value) => {
+  if (!value || typeof value !== "string") {
+    return [];
   }
-  if (url && isS3MediaUrl(url)) {
-    return extractS3KeyFromUrl(url);
+
+  const trimmed = value.trim();
+  const variants = new Set([trimmed]);
+
+  try {
+    const decoded = decodeURIComponent(trimmed);
+    variants.add(decoded);
+    variants.add(decoded.replace(/\+/g, " "));
+    variants.add(decoded.replace(/ /g, "+"));
+  } catch {
+    // Keep the raw value when URL decoding fails.
   }
-  return null;
+
+  variants.add(trimmed.replace(/\+/g, " "));
+  variants.add(trimmed.replace(/ /g, "+"));
+
+  return [...variants].filter(Boolean);
+};
+
+export const getS3KeyCandidates = ({ s3Key, key, publicId, url } = {}) => {
+  const candidates = [];
+  const seen = new Set();
+
+  const push = (value) => {
+    for (const variant of expandS3KeyVariants(value)) {
+      if (!seen.has(variant)) {
+        seen.add(variant);
+        candidates.push(variant);
+      }
+    }
+  };
+
+  push(s3Key);
+  if (publicId && looksLikeS3Key(publicId)) {
+    push(publicId);
+  }
+  push(key);
+
+  const extractedFromUrl = extractS3KeyFromUrl(url);
+  if (extractedFromUrl) {
+    push(extractedFromUrl);
+  }
+
+  if (publicId && !looksLikeS3Key(publicId) && isS3MediaUrl(url)) {
+    push(publicId);
+  }
+
+  return candidates;
+};
+
+export const resolveS3Key = (source = {}) => {
+  const candidates = getS3KeyCandidates(source);
+  return candidates[0] || null;
 };
 
 export const buildS3UrlFromKey = (s3Key, { mediaType = "image" } = {}) => {
@@ -227,36 +282,66 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
 };
 
 export const extractS3KeyFromUrl = (url) => {
-  if (!url) return null;
-  
-  console.log(`🔍 Extracting S3 key from URL: ${url}`);
-  
-  // Handle CloudFront URLs
-  if (url.includes('cloudfront.net')) {
-    const urlParts = url.split('/');
-    const key = urlParts.slice(3).join('/'); // Remove protocol, domain, and get path
-    console.log(`🔑 Extracted CloudFront key: ${key}`);
-    return key;
+  if (!url || typeof url !== "string") {
+    return null;
   }
-  
-  // Handle regional S3 URLs (e.g., s3.sa-east-1.amazonaws.com)
-  if (url.includes('s3.') && url.includes('.amazonaws.com')) {
-    const urlParts = url.split('/');
-    // URL format: https://bucket.s3.region.amazonaws.com/key
-    const key = urlParts.slice(3).join('/').replace(/\+/g, ' ');
-    console.log(`🔑 Extracted regional S3 key: ${key}`);
-    return key;
+
+  if (isLegacyExternalMediaUrl(url)) {
+    return null;
   }
-  
-  // Handle legacy S3 URLs (e.g., s3.amazonaws.com)
-  if (url.includes('s3.amazonaws.com')) {
-    const urlParts = url.split('/');
-    const key = urlParts.slice(3).join('/').replace(/\+/g, ' ');
-    console.log(`🔑 Extracted legacy S3 key: ${key}`);
-    return key;
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const pathSegments = parsed.pathname.split("/").filter(Boolean);
+    const decodePath = (segments) =>
+      decodeURIComponent(segments.join("/")).replace(/\+/g, " ");
+
+    const cloudfrontDomain = String(process.env.CLOUDFRONT_DOMAIN || "")
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/$/, "");
+
+    if (cloudfrontDomain && host === cloudfrontDomain) {
+      return decodePath(pathSegments);
+    }
+
+    if (host.includes("cloudfront.net") || host.includes("cloudfront")) {
+      return decodePath(pathSegments);
+    }
+
+    if (host.includes(".s3.") && host.includes("amazonaws.com")) {
+      return decodePath(pathSegments);
+    }
+
+    if (host === "s3.amazonaws.com" || /^s3[.-]/.test(host)) {
+      if (pathSegments.length >= 2) {
+        return decodePath(pathSegments.slice(1));
+      }
+    }
+
+    if (url.includes("amazonaws.com")) {
+      return decodePath(pathSegments);
+    }
+  } catch {
+    // Fall through to string-based parsing.
   }
-  
-  console.log(`❌ Could not extract key from URL: ${url}`);
+
+  if (url.includes("cloudfront.net") || url.includes("cloudfront")) {
+    const key = url.split("/").slice(3).join("/");
+    return key.replace(/\+/g, " ");
+  }
+
+  if (url.includes("s3.") && url.includes(".amazonaws.com")) {
+    const key = url.split("/").slice(3).join("/");
+    return key.replace(/\+/g, " ");
+  }
+
+  if (url.includes("s3.amazonaws.com")) {
+    const key = url.split("/").slice(4).join("/") || url.split("/").slice(3).join("/");
+    return key.replace(/\+/g, " ");
+  }
+
   return null;
 };
 
@@ -330,13 +415,17 @@ export const enrichSupportMaterial = (material = {}) => {
   const resolvedS3Key = resolveS3Key({
     s3Key: material.s3Key,
     key: material.key,
+    publicId: material.publicId,
     url: material.url,
   });
 
   return {
     ...material,
     s3Key: resolvedS3Key || material.s3Key || material.key || "",
-    url: material.url || buildS3UrlFromKey(resolvedS3Key, { mediaType: "image" }) || material.url,
+    url: resolveSupportMaterialUrl({
+      ...material,
+      s3Key: resolvedS3Key || material.s3Key || material.key || "",
+    }),
   };
 };
 
@@ -346,15 +435,14 @@ export const enrichLectureMedia = (lecture) => {
   const lectureObject = typeof lecture.toObject === "function" ? lecture.toObject() : { ...lecture };
   const resolvedS3Key = resolveS3Key({
     s3Key: lectureObject.s3Key,
+    key: lectureObject.key,
     publicId: lectureObject.publicId,
     url: lectureObject.videoUrl,
   });
 
-  lectureObject.s3Key = resolvedS3Key || lectureObject.s3Key || "";
-  lectureObject.videoUrl =
-    lectureObject.videoUrl ||
-    buildS3UrlFromKey(resolvedS3Key, { mediaType: "video" }) ||
-    lectureObject.videoUrl;
+  lectureObject.s3Key =
+    resolvedS3Key || lectureObject.s3Key || lectureObject.publicId || lectureObject.key || "";
+  lectureObject.videoUrl = resolveLectureVideoUrl(lectureObject);
 
   if (Array.isArray(lectureObject.supportMaterials)) {
     lectureObject.supportMaterials = lectureObject.supportMaterials.map(enrichSupportMaterial);
@@ -382,66 +470,121 @@ export const getPublicApiBase = () => {
   return `http://127.0.0.1:${process.env.PORT || 3081}/api/v1`;
 };
 
-export const buildMediaAssetUrl = (s3Key) => {
+export const buildMediaAssetUrl = (s3Key, legacy = {}) => {
   if (!s3Key) {
     return null;
   }
 
-  return `${getPublicApiBase()}/media/asset?key=${encodeURIComponent(s3Key)}`;
+  const params = new URLSearchParams();
+  params.set("key", s3Key);
+
+  if (legacy.publicId) {
+    params.set("publicId", legacy.publicId);
+  }
+
+  if (legacy.url) {
+    params.set("url", legacy.url);
+  }
+
+  if (legacy.key) {
+    params.set("legacyKey", legacy.key);
+  }
+
+  return `${getPublicApiBase()}/media/asset?${params.toString()}`;
+};
+
+const resolveMediaAssetUrl = ({ url, s3Key, key, publicId }) => {
+  if (isLocalMediaPath(url)) {
+    return url;
+  }
+
+  if (isLegacyExternalMediaUrl(url)) {
+    return url;
+  }
+
+  const candidates = getS3KeyCandidates({ s3Key, key, publicId, url });
+  if (candidates.length > 0) {
+    return buildMediaAssetUrl(candidates[0], { s3Key, key, publicId, url });
+  }
+
+  if (url && !isS3MediaUrl(url)) {
+    return url;
+  }
+
+  return url || null;
+};
+
+export const resolveSupportMaterialUrl = (material = {}) => {
+  return resolveMediaAssetUrl({
+    url: material.url,
+    s3Key: material.s3Key,
+    key: material.key,
+    publicId: material.publicId,
+  });
+};
+
+export const resolveLectureVideoUrl = (lecture = {}) => {
+  return resolveMediaAssetUrl({
+    url: lecture.videoUrl,
+    s3Key: lecture.s3Key,
+    key: lecture.key,
+    publicId: lecture.publicId,
+  });
 };
 
 export const resolveCourseThumbnailUrl = (course = {}) => {
-  const courseThumbnail = course.courseThumbnail;
-  const courseThumbnailS3Key = course.courseThumbnailS3Key;
-
-  if (isLocalMediaPath(courseThumbnail)) {
-    return courseThumbnail;
-  }
-
-  const resolvedS3Key = resolveS3Key({
-    s3Key: courseThumbnailS3Key,
-    url: courseThumbnail,
+  return resolveMediaAssetUrl({
+    url: course.courseThumbnail,
+    s3Key: course.courseThumbnailS3Key,
+    key: course.courseThumbnailKey,
   });
-
-  if (resolvedS3Key) {
-    return buildMediaAssetUrl(resolvedS3Key);
-  }
-
-  if (courseThumbnail && !isS3MediaUrl(courseThumbnail)) {
-    return courseThumbnail;
-  }
-
-  return courseThumbnail || null;
 };
 
 export const resolveUserPhotoUrl = (user = {}) => {
-  const photoUrl = user.photoUrl;
-  const photoS3Key = user.photoS3Key;
-
-  if (isLocalMediaPath(photoUrl)) {
-    return photoUrl;
-  }
-
-  const resolvedS3Key = resolveS3Key({
-    s3Key: photoS3Key,
-    url: photoUrl,
+  return resolveMediaAssetUrl({
+    url: user.photoUrl,
+    s3Key: user.photoS3Key,
+    key: user.photoKey,
   });
-
-  if (resolvedS3Key) {
-    return buildMediaAssetUrl(resolvedS3Key);
-  }
-
-  if (photoUrl && !isS3MediaUrl(photoUrl)) {
-    return photoUrl;
-  }
-
-  return photoUrl || null;
 };
+
+const toPlainCourse = (course) => {
+  if (!course) {
+    return course;
+  }
+
+  if (typeof course.toObject !== "function") {
+    return { ...course };
+  }
+
+  const plain = course.toObject();
+
+  if (Array.isArray(course.lectures)) {
+    plain.lectures = course.lectures.map((lecture) => {
+      if (!lecture || typeof lecture !== "object") {
+        return lecture;
+      }
+
+      return typeof lecture.toObject === "function" ? lecture.toObject() : lecture;
+    });
+  }
+
+  return plain;
+};
+
+const enrichCourseLectures = (lectures = []) =>
+  lectures.map((lecture) => {
+    if (!lecture || typeof lecture !== "object") {
+      return lecture;
+    }
+
+    return enrichLectureMedia(lecture);
+  });
 
 export const enrichCourseMedia = (course) => {
   if (!course) return course;
 
-  const courseObject = typeof course.toObject === "function" ? course.toObject() : { ...course };
+  const courseObject = toPlainCourse(course);
   const resolvedS3Key = resolveS3Key({
     s3Key: courseObject.courseThumbnailS3Key,
     url: courseObject.courseThumbnail,
@@ -451,9 +594,7 @@ export const enrichCourseMedia = (course) => {
   courseObject.courseThumbnail = resolveCourseThumbnailUrl(courseObject);
 
   if (Array.isArray(courseObject.lectures)) {
-    courseObject.lectures = courseObject.lectures.map((lecture) =>
-      lecture?.videoUrl || lecture?.s3Key ? enrichLectureMedia(lecture) : lecture
-    );
+    courseObject.lectures = enrichCourseLectures(courseObject.lectures);
   }
 
   return courseObject;

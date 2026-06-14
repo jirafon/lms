@@ -78,7 +78,12 @@
   },
   "student": {
     "no_enrolled_courses": "You are not enrolled in any course.",
-    "instructor_no_enrolled_courses": "As an instructor, your courses are managed in the admin panel. They will not appear here unless you enroll as a student."
+    "instructor_no_enrolled_courses": "As an instructor, your courses are managed in the admin panel. They will not appear here unless you enroll as a student.",
+    "enrolled_courses_title": "Enrolled courses",
+    "enrolled_courses_description": "Courses you are taking as a student.",
+    "instructor_courses_title": "Your courses",
+    "instructor_courses_description": "Courses you created and manage as an instructor.",
+    "instructor_courses_error": "Could not load your instructor courses."
   },
   "search": {
     "results_for": "Results for \"{{query}}\"",

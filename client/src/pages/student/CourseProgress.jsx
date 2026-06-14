@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import TakeQuiz from "@/components/TakeQuiz";
+import { enrichCourseForClient, resolveLectureVideo, resolveSupportMaterialUrl } from "@/utils/mediaUrl";
 
 const ESTIMATED_MINUTES_PER_LECTURE = 12;
 
@@ -84,7 +85,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
     skip: !selectedLectureId,
   });
 
-  const course = courseData?.course;
+  const course = enrichCourseForClient(courseData?.course);
   const progress = progressData?.progress;
   const lectures = useMemo(() => course?.lectures || [], [course?.lectures]);
 
@@ -122,6 +123,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
 
   const activeLecture =
     lectureItems.find((item) => item.lecture._id === selectedLectureId)?.lecture || nextRecommendedLecture?.lecture;
+  const activeVideoUrl = resolveLectureVideo(activeLecture);
   const activeLectureProgress = activeLecture
     ? progressByLectureId.get(String(activeLecture._id))
     : null;
@@ -264,7 +266,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
           <Card className="border-slate-200/80 bg-white/90 shadow-sm">
             <CardContent className="p-5 md:p-6">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                {!activeLecture?.videoUrl ? (
+                {!activeVideoUrl ? (
                   <div className="flex aspect-video flex-col items-center justify-center gap-3 p-6 text-center">
                     <AlertTriangle className="h-10 w-10 text-amber-500" />
                     <p className="max-w-md text-sm text-slate-600">
@@ -282,7 +284,7 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                 ) : (
                   <video
                     key={activeLecture?._id}
-                    src={activeLecture?.videoUrl}
+                    src={activeVideoUrl}
                     controls
                     controlsList="nodownload"
                     className="aspect-video w-full bg-black"
@@ -314,8 +316,8 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
                   <div className="mt-3 space-y-2">
                     {activeLecture.supportMaterials.map((material) => (
                       <a
-                        key={material.url}
-                        href={material.url}
+                        key={material.url || material.s3Key || material.name}
+                        href={resolveSupportMaterialUrl(material)}
                         target="_blank"
                         rel="noreferrer"
                         className="block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-sky-700 hover:underline"

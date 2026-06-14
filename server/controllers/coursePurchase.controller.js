@@ -11,6 +11,7 @@ import {
   getFlowPaymentStatus,
   isFlowConfigured,
 } from "../utils/flow.js";
+import { enrichCourseMedia, enrichUserMedia } from "../utils/s3.js";
 
 const getOrderedLectures = (lectures = []) => {
   return lectures
@@ -549,12 +550,18 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       return sendError(res, { status: 404, message: "course not found!" });
     }
 
-    course.lectures = getOrderedLectures(course.lectures);
+    const orderedLectures = getOrderedLectures(course.lectures || []);
+    course.lectures = orderedLectures;
     const flowCheckout = resolveFlowCheckoutConfig(course);
+    const isCreator = String(course.creator?._id || course.creator) === String(userId);
+    const coursePayload = enrichCourseMedia(course);
+    if (coursePayload.creator) {
+      coursePayload.creator = enrichUserMedia(coursePayload.creator);
+    }
 
     return sendSuccess(res, {
-      course,
-      purchased: !!purchased, // true if purchased, false otherwise
+      course: coursePayload,
+      purchased: Boolean(purchased) || isCreator,
       checkoutOptions: {
         flow: flowCheckout,
       },

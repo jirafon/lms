@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { generateToken } from "../utils/generateToken.js";
 import { sanitizeAuthUser } from "../utils/userRole.js";
-import { deleteMediaFromS3, uploadMedia, enrichUserMedia } from "../utils/s3.js";
+import { deleteMediaFromS3, uploadMedia, enrichUserMedia, enrichCourseMedia } from "../utils/s3.js";
 import { logger } from "../utils/logger.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { validateStringField } from "../utils/validators.js";
@@ -279,8 +279,17 @@ export const getUserProfile = async (req,res) => {
                 message:"Profile not found",
             })
         }
+        const sanitizedUser = await sanitizeAuthUser(user);
+        if (Array.isArray(sanitizedUser.enrolledCourses)) {
+            sanitizedUser.enrolledCourses = sanitizedUser.enrolledCourses.map((course) =>
+                course && typeof course === "object" && course.courseTitle
+                    ? enrichCourseMedia(course)
+                    : course
+            );
+        }
+
         return sendSuccess(res, {
-            user: enrichUserMedia(await sanitizeAuthUser(user)),
+            user: enrichUserMedia(sanitizedUser),
         })
     } catch (error) {
         logger.error("Failed to load user profile", { error: error.message, userId: req.id });
