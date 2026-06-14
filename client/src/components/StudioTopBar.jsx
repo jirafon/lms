@@ -78,7 +78,7 @@ const StudioTopBar = ({ onOpenMenu }) => {
           <Menu className="h-4 w-4" />
         </Button>
         <Link to={ROUTES.studio} className="font-display text-base font-semibold text-foreground">
-          Academia Studio
+          Academy Studio
         </Link>
       </div>
       <div className="flex items-center gap-2">

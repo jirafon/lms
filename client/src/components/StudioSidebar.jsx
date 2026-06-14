@@ -49,7 +49,7 @@ const StudioSidebar = ({ onNavigate }) => {
       >
         <img src="/unbiax13.png" alt="Unbiax" className="h-8 w-auto" />
         <span className="font-display text-lg font-semibold leading-none text-foreground">
-          Academia Studio
+          Academy Studio
         </span>
       </Link>
 

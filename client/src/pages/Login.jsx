@@ -122,7 +122,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-            Unbiax Academia
+            Unbiax Academy
           </p>
           <h1 className="mt-2 font-hero text-3xl font-semibold tracking-tight text-foreground">
             {authMode === "login" ? t("auth.login") : "Crear cuenta"}
