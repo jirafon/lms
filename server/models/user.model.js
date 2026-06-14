@@ -115,6 +115,10 @@ const userSchema = new mongoose.Schema({
       type: String,
       default: "",
     },
+    photoS3Key: {
+      type: String,
+      default: "",
+    },
     
     nationality: { type: String, default: "" },
 

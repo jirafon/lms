@@ -1,7 +1,9 @@
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { resolveCourseThumbnail } from "@/utils/mediaUrl";
 
 const formatSearchResultPrice = (course) => {
   if (course?.quoteOnly) {
@@ -36,31 +38,40 @@ const getCourseLevelLabel = (courseLevel, t) => {
 
 const SearchResult = ({ course }) => {
   const { t } = useTranslation();
-   
+  const thumbnailSrc = resolveCourseThumbnail(course);
+
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-300 py-4 gap-4">
+    <Card className="overflow-hidden border-border shadow-sm transition-shadow hover:shadow-md">
       <Link
         to={`/course-detail/${course._id}`}
-        className="flex flex-col md:flex-row gap-4 w-full md:w-auto"
+        className="flex flex-col gap-4 p-4 md:flex-row md:items-center"
       >
         <img
-          src={course.courseThumbnail}
-          alt="course-thumbnial"
-          className="h-32 w-full md:w-56 object-cover rounded"
+          src={thumbnailSrc}
+          alt={course.courseTitle}
+          className="h-32 w-full rounded-lg object-cover md:w-52"
         />
-        <div className="flex flex-col gap-2">
-          <h1 className="font-bold text-lg md:text-xl">{course.courseTitle}</h1>
-          <p className="text-sm text-gray-600">{course.subTitle}</p>
-          <p className="text-sm text-gray-700">
-            Intructor: <span className="font-bold">{course.creator?.name}</span>{" "}
+        <div className="min-w-0 flex-1 space-y-2">
+          <h2 className="text-lg font-semibold text-foreground md:text-xl">
+            {course.courseTitle}
+          </h2>
+          {course.subTitle && (
+            <p className="line-clamp-2 text-sm text-muted-foreground">{course.subTitle}</p>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Instructor: <span className="font-medium text-foreground">{course.creator?.name}</span>
           </p>
-          <Badge className="w-fit mt-2 md:mt-0">{getCourseLevelLabel(course.courseLevel, t)}</Badge>
+          <Badge variant="outline" className="w-fit rounded-md">
+            {getCourseLevelLabel(course.courseLevel, t)}
+          </Badge>
+        </div>
+        <div className="shrink-0 text-left md:text-right">
+          <p className="text-base font-semibold text-foreground md:text-lg">
+            {formatSearchResultPrice(course)}
+          </p>
         </div>
       </Link>
-      <div className="mt-4 md:mt-0 md:text-right w-full md:w-auto">
-        <h1 className="font-bold text-lg md:text-xl">{formatSearchResultPrice(course)}</h1>
-      </div>
-    </div>
+    </Card>
   );
 };
 

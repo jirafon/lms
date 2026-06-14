@@ -48,6 +48,9 @@ const courseSchema = new mongoose.Schema({
     courseThumbnail:{
         type:String
     },
+    courseThumbnailS3Key:{
+        type:String
+    },
     quoteOnly: {
         type: Boolean,
         default: false,

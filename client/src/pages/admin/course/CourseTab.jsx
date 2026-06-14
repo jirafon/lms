@@ -1,4 +1,5 @@
 import RichTextEditor from "@/components/RichTextEditor";
+import { resolveCourseThumbnail } from "@/utils/mediaUrl";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -236,6 +237,8 @@ const CourseTab = () => {
   }, [isSuccess, error, data?.message, t]);
 
   if(courseByIdLoading) return <h1>{t('course.loading')}</h1>
+
+  const existingThumbnailSrc = resolveCourseThumbnail(courseByIdData?.course);
  
   return (
     <Card>
@@ -373,10 +376,10 @@ const CourseTab = () => {
               accept="image/*"
               className="w-fit"
             />
-            {(previewThumbnail || courseByIdData?.course?.courseThumbnail) && (
+            {(previewThumbnail || existingThumbnailSrc) && (
               <div className="mt-2">
                 <img
-                  src={previewThumbnail || courseByIdData?.course?.courseThumbnail}
+                  src={previewThumbnail || existingThumbnailSrc}
                   className="w-64 h-32 object-cover rounded-md border"
                   alt="Course Thumbnail"
                 />

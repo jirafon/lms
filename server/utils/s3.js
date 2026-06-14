@@ -14,6 +14,56 @@ const encodeS3Url = (key) => {
   return key.replace(/\s/g, '+');
 };
 
+export const isS3MediaUrl = (url) => {
+  if (!url) return false;
+  return (
+    url.includes("s3") ||
+    url.includes("cloudfront") ||
+    url.includes("amazonaws.com")
+  );
+};
+
+export const looksLikeS3Key = (value) => {
+  if (!value || typeof value !== "string") return false;
+  return value.includes("/") && !value.startsWith("http");
+};
+
+export const resolveS3Key = ({ s3Key, key, publicId, url } = {}) => {
+  if (s3Key) return s3Key;
+  if (key) return key;
+  if (publicId && (looksLikeS3Key(publicId) || isS3MediaUrl(url))) {
+    return publicId;
+  }
+  if (url && isS3MediaUrl(url)) {
+    return extractS3KeyFromUrl(url);
+  }
+  return null;
+};
+
+export const buildS3UrlFromKey = (s3Key, { mediaType = "image" } = {}) => {
+  if (!s3Key) return null;
+
+  const bucketName = resolveS3BucketName();
+  const region = resolveS3Region();
+  const encodedKey = encodeS3Url(s3Key);
+
+  if (mediaType === "video") {
+    const cloudfrontDomain = process.env.CLOUDFRONT_DOMAIN;
+    if (cloudfrontDomain) {
+      return `https://${cloudfrontDomain}/${encodedKey}`;
+    }
+  }
+
+  if (!bucketName) return null;
+  return `https://${bucketName}.s3.${region}.amazonaws.com/${encodedKey}`;
+};
+
+const buildUploadResult = (fileKey, url) => ({
+  s3Key: fileKey,
+  key: fileKey,
+  url,
+});
+
 // Function to get content type based on file extension
 const getContentType = (filename) => {
   const ext = filename.toLowerCase().split('.').pop();
@@ -92,7 +142,7 @@ export const uploadMedia = async (filePathOrBuffer, originalName) => {
     
     console.log(`✅ S3 upload successful: ${fileKey}`);
     
-    return { key: fileKey, url };
+    return buildUploadResult(fileKey, url);
   } catch (error) {
     console.error(`❌ S3 upload failed: ${fileKey}`);
     console.error(`🔍 Error details:`, error);
@@ -168,7 +218,7 @@ export const uploadVideo = async (filePathOrBuffer, originalName) => {
       console.log(`✅ S3 video upload successful (S3): ${fileKey}`);
     }
     
-    return { key: fileKey, url };
+    return buildUploadResult(fileKey, url);
   } catch (error) {
     console.error(`❌ S3 video upload failed: ${fileKey}`);
     console.error(`🔍 Error details:`, error);
@@ -192,9 +242,8 @@ export const extractS3KeyFromUrl = (url) => {
   // Handle regional S3 URLs (e.g., s3.sa-east-1.amazonaws.com)
   if (url.includes('s3.') && url.includes('.amazonaws.com')) {
     const urlParts = url.split('/');
-    // Remove protocol, bucket, and get key
     // URL format: https://bucket.s3.region.amazonaws.com/key
-    const key = urlParts.slice(3).join('/');
+    const key = urlParts.slice(3).join('/').replace(/\+/g, ' ');
     console.log(`🔑 Extracted regional S3 key: ${key}`);
     return key;
   }
@@ -202,7 +251,7 @@ export const extractS3KeyFromUrl = (url) => {
   // Handle legacy S3 URLs (e.g., s3.amazonaws.com)
   if (url.includes('s3.amazonaws.com')) {
     const urlParts = url.split('/');
-    const key = urlParts.slice(3).join('/'); // Remove protocol, bucket, and get key
+    const key = urlParts.slice(3).join('/').replace(/\+/g, ' ');
     console.log(`🔑 Extracted legacy S3 key: ${key}`);
     return key;
   }
@@ -211,12 +260,18 @@ export const extractS3KeyFromUrl = (url) => {
   return null;
 };
 
-export const deleteMediaFromS3 = async (key) => {
+export const deleteMediaFromS3 = async (keyOrSource) => {
   const bucketName = resolveS3BucketName();
   if (!bucketName) {
     console.warn("⚠️ S3 bucket configuration is not defined; skipping deletion.");
     return;
   }
+
+  const key =
+    typeof keyOrSource === "string"
+      ? keyOrSource
+      : resolveS3Key(keyOrSource);
+
   if (!key) {
     console.warn("⚠️ No S3 key provided; skipping deletion.");
     return;
@@ -238,13 +293,19 @@ export const deleteMediaFromS3 = async (key) => {
   }
 };
 
-export const deleteVideoFromS3 = async (key) => {
+export const deleteVideoFromS3 = async (keyOrSource) => {
   try {
     const bucketName = resolveS3BucketName();
     if (!bucketName) {
       console.warn("⚠️ S3 bucket configuration is not defined; skipping video deletion.");
       return;
     }
+
+    const key =
+      typeof keyOrSource === "string"
+        ? keyOrSource
+        : resolveS3Key(keyOrSource);
+
     if (!key) {
       console.warn("⚠️ No S3 key provided; skipping video deletion.");
       return;
@@ -259,8 +320,156 @@ export const deleteVideoFromS3 = async (key) => {
     await s3.send(new DeleteObjectCommand(deleteParams));
     console.log(`✅ S3 video deletion successful: ${key}`);
   } catch (error) {
-    console.error(`❌ S3 video deletion failed: ${key}`);
+    console.error(`❌ S3 video deletion failed: ${keyOrSource}`);
     console.error(`🔍 Error details:`, error);
     throw error;
   }
+};
+
+export const enrichSupportMaterial = (material = {}) => {
+  const resolvedS3Key = resolveS3Key({
+    s3Key: material.s3Key,
+    key: material.key,
+    url: material.url,
+  });
+
+  return {
+    ...material,
+    s3Key: resolvedS3Key || material.s3Key || material.key || "",
+    url: material.url || buildS3UrlFromKey(resolvedS3Key, { mediaType: "image" }) || material.url,
+  };
+};
+
+export const enrichLectureMedia = (lecture) => {
+  if (!lecture) return lecture;
+
+  const lectureObject = typeof lecture.toObject === "function" ? lecture.toObject() : { ...lecture };
+  const resolvedS3Key = resolveS3Key({
+    s3Key: lectureObject.s3Key,
+    publicId: lectureObject.publicId,
+    url: lectureObject.videoUrl,
+  });
+
+  lectureObject.s3Key = resolvedS3Key || lectureObject.s3Key || "";
+  lectureObject.videoUrl =
+    lectureObject.videoUrl ||
+    buildS3UrlFromKey(resolvedS3Key, { mediaType: "video" }) ||
+    lectureObject.videoUrl;
+
+  if (Array.isArray(lectureObject.supportMaterials)) {
+    lectureObject.supportMaterials = lectureObject.supportMaterials.map(enrichSupportMaterial);
+  }
+
+  return lectureObject;
+};
+
+export const isLocalMediaPath = (value) =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+
+export const getPublicApiBase = () => {
+  const configured =
+    process.env.API_PUBLIC_BASE_URL ||
+    process.env.REACT_APP_API_BASE_URL;
+
+  if (configured && configured.includes("/api/v1")) {
+    return configured.replace(/\/$/, "");
+  }
+
+  if (configured) {
+    return `${configured.replace(/\/$/, "")}/api/v1`;
+  }
+
+  return `http://127.0.0.1:${process.env.PORT || 3081}/api/v1`;
+};
+
+export const buildMediaAssetUrl = (s3Key) => {
+  if (!s3Key) {
+    return null;
+  }
+
+  return `${getPublicApiBase()}/media/asset?key=${encodeURIComponent(s3Key)}`;
+};
+
+export const resolveCourseThumbnailUrl = (course = {}) => {
+  const courseThumbnail = course.courseThumbnail;
+  const courseThumbnailS3Key = course.courseThumbnailS3Key;
+
+  if (isLocalMediaPath(courseThumbnail)) {
+    return courseThumbnail;
+  }
+
+  const resolvedS3Key = resolveS3Key({
+    s3Key: courseThumbnailS3Key,
+    url: courseThumbnail,
+  });
+
+  if (resolvedS3Key) {
+    return buildMediaAssetUrl(resolvedS3Key);
+  }
+
+  if (courseThumbnail && !isS3MediaUrl(courseThumbnail)) {
+    return courseThumbnail;
+  }
+
+  return courseThumbnail || null;
+};
+
+export const resolveUserPhotoUrl = (user = {}) => {
+  const photoUrl = user.photoUrl;
+  const photoS3Key = user.photoS3Key;
+
+  if (isLocalMediaPath(photoUrl)) {
+    return photoUrl;
+  }
+
+  const resolvedS3Key = resolveS3Key({
+    s3Key: photoS3Key,
+    url: photoUrl,
+  });
+
+  if (resolvedS3Key) {
+    return buildMediaAssetUrl(resolvedS3Key);
+  }
+
+  if (photoUrl && !isS3MediaUrl(photoUrl)) {
+    return photoUrl;
+  }
+
+  return photoUrl || null;
+};
+
+export const enrichCourseMedia = (course) => {
+  if (!course) return course;
+
+  const courseObject = typeof course.toObject === "function" ? course.toObject() : { ...course };
+  const resolvedS3Key = resolveS3Key({
+    s3Key: courseObject.courseThumbnailS3Key,
+    url: courseObject.courseThumbnail,
+  });
+
+  courseObject.courseThumbnailS3Key = resolvedS3Key || courseObject.courseThumbnailS3Key || "";
+  courseObject.courseThumbnail = resolveCourseThumbnailUrl(courseObject);
+
+  if (Array.isArray(courseObject.lectures)) {
+    courseObject.lectures = courseObject.lectures.map((lecture) =>
+      lecture?.videoUrl || lecture?.s3Key ? enrichLectureMedia(lecture) : lecture
+    );
+  }
+
+  return courseObject;
+};
+
+export const enrichUserMedia = (user) => {
+  if (!user) return user;
+
+  const userObject = typeof user.toObject === "function" ? user.toObject() : { ...user };
+  const resolvedS3Key = resolveS3Key({
+    s3Key: userObject.photoS3Key,
+    url: userObject.photoUrl,
+  });
+
+  userObject.photoS3Key = resolvedS3Key || userObject.photoS3Key || "";
+  userObject.photoUrl = resolveUserPhotoUrl(userObject);
+
+  return userObject;
 };

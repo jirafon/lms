@@ -110,7 +110,27 @@ const isLocalDevOrigin = (origin) => {
     return false;
   }
 
-  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin);
+  try {
+    const { hostname } = new URL(origin);
+
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "[::1]"
+    ) {
+      return true;
+    }
+
+    // Allow LAN access during local development (e.g. http://192.168.x.x:10000)
+    if (/^10\./.test(hostname)) return true;
+    if (/^192\.168\./.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)) return true;
+
+    return false;
+  } catch {
+    return false;
+  }
 };
 
 if (allowedOrigins.size === 0) {

@@ -16,9 +16,9 @@ const SearchPage = () => {
   const [sortByPrice, setSortByPrice] = useState("");
 
   const { data, isLoading } = useGetSearchCourseQuery({
-    searchQuery:query,
-    categories:selectedCategories,
-    sortByPrice
+    searchQuery: query,
+    categories: selectedCategories,
+    sortByPrice,
   });
 
   const isEmpty = !isLoading && data?.courses.length === 0;
@@ -26,19 +26,28 @@ const SearchPage = () => {
   const handleFilterChange = (categories, price) => {
     setSelectedCatgories(categories);
     setSortByPrice(price);
-  }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8">
-      <div className="my-6">
-        <h1 className="font-bold text-xl md:text-2xl">{t("search.results_for", { query: query || "" })}</h1>
-        <p>
-          {t("search.showing_results_for")}{" "}
-          <span className="text-blue-800 font-bold italic">{query}</span>
+    <div className="mx-auto max-w-7xl px-4 py-10 md:px-8">
+      <div className="mb-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+          {t("search.results_for", { query: query || "" })}
         </p>
+        <h1 className="mt-2 font-hero text-3xl font-semibold tracking-tight text-foreground">
+          Resultados de busqueda
+        </h1>
+        {query && (
+          <p className="mt-2 text-muted-foreground">
+            {t("search.showing_results_for")}{" "}
+            <span className="font-medium text-foreground">{query}</span>
+          </p>
+        )}
       </div>
-      <div className="flex flex-col md:flex-row gap-10">
-        <Filter handleFilterChange={handleFilterChange}/>
-        <div className="flex-1">
+
+      <div className="flex flex-col gap-8 lg:flex-row">
+        <Filter handleFilterChange={handleFilterChange} />
+        <div className="flex-1 space-y-4">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, idx) => (
               <CourseSkeleton key={idx} />
@@ -46,7 +55,7 @@ const SearchPage = () => {
           ) : isEmpty ? (
             <CourseNotFound t={t} />
           ) : (
-            data?.courses?.map((course) => <SearchResult key={course._id} course={course}/>)
+            data?.courses?.map((course) => <SearchResult key={course._id} course={course} />)
           )}
         </div>
       </div>
@@ -58,16 +67,18 @@ export default SearchPage;
 
 const CourseNotFound = ({ t }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-32 dark:bg-gray-900 p-6">
-      <AlertCircle className="text-red-500 h-16 w-16 mb-4" />
-      <h1 className="font-bold text-2xl md:text-4xl text-gray-800 dark:text-gray-200 mb-2">
+    <div className="flex min-h-48 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center">
+      <AlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
+      <h2 className="text-xl font-semibold text-foreground">
         {t("search.course_not_found")}
-      </h1>
-      <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+      </h2>
+      <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {t("search.course_not_found_description")}
       </p>
-      <Link to="/" className="italic">
-        <Button variant="link">{t("search.browse_all_courses")}</Button>
+      <Link to="/" className="mt-6">
+        <Button variant="outline" className="rounded-lg">
+          {t("search.browse_all_courses")}
+        </Button>
       </Link>
     </div>
   );
@@ -75,23 +86,15 @@ const CourseNotFound = ({ t }) => {
 
 const CourseSkeleton = () => {
   return (
-    <div className="flex-1 flex flex-col md:flex-row justify-between border-b border-gray-300 py-4">
-      <div className="h-32 w-full md:w-64">
-        <Skeleton className="h-full w-full object-cover" />
-      </div>
-
-      <div className="flex flex-col gap-2 flex-1 px-4">
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 md:flex-row">
+      <Skeleton className="h-32 w-full rounded-lg md:w-56" />
+      <div className="flex flex-1 flex-col gap-3">
         <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-1/2" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-4 w-1/3" />
-        </div>
-        <Skeleton className="h-6 w-20 mt-2" />
+        <Skeleton className="h-5 w-24 rounded-full" />
       </div>
-
-      <div className="flex flex-col items-end justify-between mt-4 md:mt-0">
-        <Skeleton className="h-6 w-12" />
-      </div>
+      <Skeleton className="h-6 w-28" />
     </div>
   );
 };

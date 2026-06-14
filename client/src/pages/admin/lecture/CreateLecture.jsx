@@ -52,7 +52,8 @@ const CreateLecture = () => {
           uploadedMaterials.push({
             name: file.name,
             url: res.data.data.url,
-            key: res.data.data.key,
+            s3Key: res.data.data.s3Key || res.data.data.key,
+            key: res.data.data.s3Key || res.data.data.key,
           });
         }
       }

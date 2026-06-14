@@ -15,11 +15,13 @@ const lectureSchema = new mongoose.Schema({
     min: 0,
   },
   videoUrl: { type: String },
+  s3Key: { type: String },
   publicId: { type: String },
   supportMaterials: [
     {
       name: { type: String, required: true },
       url: { type: String, required: true },
+      s3Key: { type: String },
       key: { type: String },
     },
   ],

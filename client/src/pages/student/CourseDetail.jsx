@@ -12,11 +12,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useGetCourseProgressQuery } from "@/features/api/courseProgressApi";
 import { useGetCourseDetailWithStatusQuery } from "@/features/api/purchaseApi";
-import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Sparkles, Users, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Users, BookOpen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
+import { resolveCourseThumbnail } from "@/utils/mediaUrl";
 
 const renderSupportMaterials = (lecture) => {
   if (!lecture?.supportMaterials?.length) {
@@ -33,7 +35,7 @@ const renderSupportMaterials = (lecture) => {
             href={material.url}
             target="_blank"
             rel="noreferrer"
-            className="block rounded border px-3 py-2 text-sm text-blue-600 hover:underline"
+            className="block rounded-lg border border-border px-3 py-2 text-sm text-primary hover:bg-muted/40"
           >
             {material.name}
           </a>
@@ -99,6 +101,7 @@ const CourseDetail = () => {
   const firstLecture = course?.lectures?.[0];
   const courseTitle = course?.courseTitle || course?.title || "Curso";
   const courseSummary = course?.subTitle || course?.description || "";
+  const thumbnailSrc = resolveCourseThumbnail(course);
   const progress = progressData?.progress;
   const completedQuizzes = progress?.completedQuizzes || 0;
   const totalLectures = course?.lectures?.length || 0;
@@ -144,88 +147,89 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(249,115,22,0.10),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] dark:bg-[linear-gradient(180deg,_#111827_0%,_#0f172a_100%)]">
-      <div className="border-b border-black/5 bg-slate-950 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-10 md:px-8 md:py-14">
+    <div className="min-h-screen bg-muted/30">
+      <div className="border-b border-border bg-white dark:bg-slate-950">
+        <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-12">
           <div className="max-w-4xl space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-slate-200">
-              <Sparkles className="h-3.5 w-3.5" />
+            <Badge variant="secondary" className="rounded-md px-3 py-1 text-xs font-medium uppercase tracking-wide">
               {course?.category || "Curso"}
-            </div>
+            </Badge>
 
             <div className="space-y-3">
-              <h1 className="font-serif text-3xl leading-tight text-white md:text-5xl">
+              <h1 className="font-hero text-3xl font-semibold leading-tight text-foreground md:text-4xl lg:text-5xl">
                 {courseTitle}
               </h1>
               {courseSummary && (
-                <p className="max-w-3xl text-sm leading-6 text-slate-300 md:text-base">
+                <p className="max-w-3xl text-base leading-7 text-muted-foreground">
                   {courseSummary}
                 </p>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
-                <BookOpen className="h-4 w-4 text-sky-300" />
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5">
+                <BookOpen className="h-4 w-4 text-primary" />
                 {course?.lectures?.length || 0} capitulos
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
-                <BarChart3 className="h-4 w-4 text-violet-300" />
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5">
+                <BarChart3 className="h-4 w-4 text-primary" />
                 ~{estimatedMinutes} min estimados
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
-                <Users className="h-4 w-4 text-orange-300" />
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5">
+                <Users className="h-4 w-4 text-primary" />
                 {course?.enrolledStudents?.length || 0} inscritos
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5">
-                <BadgeInfo className="h-4 w-4 text-emerald-300" />
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5">
+                <BadgeInfo className="h-4 w-4 text-primary" />
                 Actualizado {formatDate(course?.createdAt)}
               </div>
             </div>
 
-            <p className="text-sm text-slate-400">
-              Creado por <span className="font-medium text-white">{course?.creator?.name || "Equipo"}</span>
+            <p className="text-sm text-muted-foreground">
+              Creado por <span className="font-medium text-foreground">{course?.creator?.name || "Equipo"}</span>
             </p>
           </div>
         </div>
       </div>
-      
-      <div className="max-w-7xl mx-auto px-4 py-8 md:px-8 md:py-10">
+
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
         <div className="flex flex-col-reverse gap-8 lg:flex-row lg:items-start lg:justify-between">
-          <div className="w-full lg:w-[58%] space-y-6">
-            <Card className="overflow-hidden border-white/50 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="w-full space-y-6 lg:w-[58%]">
+            <Card className="border-border shadow-sm">
               <CardContent className="p-6 md:p-8">
-                <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  <span className="h-px w-8 bg-slate-300" />
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Resumen del curso
-                </div>
+                </p>
                 <div
-                  className="prose prose-sm max-w-none text-slate-700 prose-p:leading-7"
+                  className="prose prose-sm mt-4 max-w-none text-foreground prose-p:leading-7"
                   dangerouslySetInnerHTML={{ __html: course.description || "" }}
                 />
               </CardContent>
             </Card>
 
-            <Card className="border-white/50 bg-white/85 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <Card className="border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-xl text-slate-900">Contenido del curso</CardTitle>
+                <CardTitle className="font-hero text-xl">Contenido del curso</CardTitle>
                 <CardDescription>{course.lectures.length} capitulos disponibles</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {course.lectures.map((lecture, idx) => (
-                  <div key={idx} className="flex items-start gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 text-sm transition-colors hover:bg-white">
-                    <span className="mt-0.5 rounded-full bg-white p-2 text-slate-700 shadow-sm">
+                  <div
+                    key={idx}
+                    className="flex items-start gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm transition-colors hover:bg-muted/40"
+                  >
+                    <span className="mt-0.5 rounded-md bg-background p-2 text-muted-foreground shadow-sm">
                       {purchased ? <PlayCircle size={14} /> : <Lock size={14} />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900">{lecture.lectureTitle}</p>
+                      <p className="font-medium text-foreground">{lecture.lectureTitle}</p>
                       {lecture.lectureDescription && (
-                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
                           {lecture.lectureDescription}
                         </p>
                       )}
                     </div>
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {purchased && progress?.lectures?.find((entry) => String(entry.lectureId?._id || entry.lectureId) === String(lecture._id))?.quizCompleted ? "Aprobado" : idx + 1}
                     </span>
                   </div>
@@ -234,14 +238,14 @@ const CourseDetail = () => {
             </Card>
           </div>
 
-          <div className="w-full lg:sticky lg:top-6 lg:w-[34%]">
-            <Card className="overflow-hidden border-slate-200/80 bg-white/90 shadow-[0_25px_70px_rgba(15,23,42,0.12)] backdrop-blur">
+          <div className="w-full lg:sticky lg:top-20 lg:w-[34%]">
+            <Card className="overflow-hidden border-border shadow-sm">
               <CardContent className="flex flex-col p-4 md:p-5">
-                <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                  <div className="aspect-video w-full bg-slate-100">
-                    {course?.courseThumbnail ? (
+                <div className="mb-4 overflow-hidden rounded-lg border border-border bg-muted/30">
+                  <div className="aspect-video w-full">
+                    {thumbnailSrc ? (
                       <img
-                        src={course.courseThumbnail}
+                        src={thumbnailSrc}
                         alt={courseTitle}
                         className="h-full w-full object-cover"
                         onError={() => {
@@ -249,10 +253,10 @@ const CourseDetail = () => {
                         }}
                       />
                     ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center rounded-lg bg-gray-100 p-6 dark:bg-gray-800">
-                        <AlertTriangle className="mb-4 h-12 w-12 text-yellow-500" />
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-muted/40 p-6">
+                        <AlertTriangle className="mb-4 h-12 w-12 text-amber-500" />
                         <h3 className="mb-2 text-lg font-semibold">Imagen no disponible</h3>
-                        <p className="text-center text-sm text-gray-600">
+                        <p className="text-center text-sm text-muted-foreground">
                           Este curso no tiene miniatura configurada
                         </p>
                       </div>
@@ -262,43 +266,39 @@ const CourseDetail = () => {
 
                 <div className="space-y-3">
                   {purchased && (
-                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                      <p className="font-semibold">Siguiente acción recomendada</p>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+                      <p className="font-semibold">Siguiente accion recomendada</p>
                       <p className="mt-1">
                         {progress?.courseProgress === 100
                           ? "Ya completaste el curso. Puedes revisar el contenido o descargar tu certificado."
-                          : `Continúa con ${nextUnlockedLecture?.lectureTitle || firstLecture?.lectureTitle}. Llevas ${completedQuizzes}/${totalLectures} quizzes aprobados.`}
+                          : `Continua con ${nextUnlockedLecture?.lectureTitle || firstLecture?.lectureTitle}. Llevas ${completedQuizzes}/${totalLectures} quizzes aprobados.`}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       Primer capitulo
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                    <h2 className="mt-2 text-xl font-semibold text-foreground">
                       {firstLecture?.lectureTitle || "Lecture title"}
                     </h2>
                     {firstLecture?.lectureDescription && (
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
                         {firstLecture.lectureDescription}
                       </p>
                     )}
                   </div>
 
                   {!purchased && (
-                    <div className="flex items-end justify-between rounded-2xl bg-slate-950 px-4 py-4 text-white">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Precio</p>
-                        <p className="mt-1 text-3xl font-semibold">{displayPriceLabel}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
-                          {course?.quoteOnly ? "Minimo 10 alumnos por grupo" : "Por usuario"}
-                        </p>
-                      </div>
-                      <div className="text-right text-xs text-slate-400">
-                        <p>{courseLevelLabel}</p>
-                        <p className="mt-1">
-                          {course?.quoteOnly ? "Compra individual deshabilitada" : "Acceso inmediato"}
-                        </p>
+                    <div className="rounded-lg border border-border bg-foreground px-4 py-4 text-background">
+                      <p className="text-xs uppercase tracking-[0.12em] opacity-70">Precio</p>
+                      <p className="mt-1 text-3xl font-semibold">{displayPriceLabel}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.12em] opacity-70">
+                        {course?.quoteOnly ? "Minimo 10 alumnos por grupo" : "Por usuario"}
+                      </p>
+                      <div className="mt-3 flex justify-between text-xs opacity-70">
+                        <span>{courseLevelLabel}</span>
+                        <span>{course?.quoteOnly ? "Compra individual deshabilitada" : "Acceso inmediato"}</span>
                       </div>
                     </div>
                   )}
@@ -311,20 +311,20 @@ const CourseDetail = () => {
               <CardFooter className="flex flex-col gap-2 p-4">
                 {purchased ? (
                   <>
-                    <Button onClick={handleContinueCourse} className="min-h-11 w-full whitespace-normal py-3 text-center leading-tight bg-emerald-600 text-white hover:bg-emerald-700">
+                    <Button onClick={handleContinueCourse} className="min-h-11 w-full rounded-lg py-3">
                       {continueLabel}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => setShowProgress(!showProgress)}
-                      className="h-11 w-full items-center gap-2 border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      className="h-11 w-full rounded-lg"
                     >
-                      <BarChart3 className="h-4 w-4" />
-                      {showProgress ? 'Ocultar Progreso' : 'Ver Progreso'}
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      {showProgress ? "Ocultar progreso" : "Ver progreso"}
                     </Button>
                   </>
                 ) : course?.quoteOnly ? (
-                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                     Contactenos para cotizar este curso grupal. Minimo 10 alumnos por grupo.
                   </div>
                 ) : (
@@ -336,9 +336,8 @@ const CourseDetail = () => {
         </div>
       </div>
 
-      {/* Course Progress Section */}
       {purchased && showProgress && (
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="mx-auto max-w-7xl px-4 pb-10 md:px-8">
           <CourseProgress courseId={courseId} />
         </div>
       )}

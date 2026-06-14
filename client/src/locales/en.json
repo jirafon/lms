@@ -42,16 +42,16 @@
     "my_account": "My Account"
   },
   "home": {
-    "hero_badge": "Executive LMS Training",
+    "hero_badge": "Executive Training",
     "hero_title": "Train teams with a learning experience that feels clear, elegant, and compliance-ready.",
     "hero_description": "Centralize risk, integrity, compliance, and governance courses in a platform with a professional visual standard, guided progress, and content ready to scale.",
     "hero_feature_paths": "Chapter-based learning paths and quizzes",
     "hero_feature_tracking": "Per-student progress tracking",
     "hero_feature_catalog": "Catalog ready for teams",
     "hero_cta": "Explore courses",
-    "hero_caption": "Designed for organizations that need a reliable, premium LMS experience.",
+    "hero_caption": "Designed for organizations that need a reliable, professional learning experience.",
     "panel_eyebrow": "Academic Panel",
-    "panel_title": "Corporate LMS",
+    "panel_title": "Corporate Academy",
     "panel_status": "Active",
     "panel_metric_courses": "Courses ready to publish",
     "panel_metric_progress": "Average path progress",
@@ -74,22 +74,11 @@
     "courses_highlight": "Premium catalog in CLP",
     "courses_cta": "View full catalog",
     "courses_error": "Some error occurred while fetching courses.",
-    "footer_badge": "Institutional close",
-    "footer_title": "A more refined, professional homepage built to scale corporate learning.",
-    "footer_description": "Present your catalog with a more elegant visual identity, stronger content hierarchy, and a more consistent experience from the first scroll.",
-    "footer_capabilities_label": "Capabilities",
-    "footer_capabilities": [
-      "Private AI agents, workflows, and knowledge bases",
-      "GRC, privacy, risk, and operational governance",
-      "Document automation and regulatory monitoring",
-      "Corporate LMS for privacy, ethics, and compliance"
-    ],
-    "footer_panel_label": "Catalog and enrollment",
-    "footer_panel_text": "Clear per-user pricing and navigation ready for checkout and progress tracking.",
-    "footer_cta": "Go to catalog"
+    "footer_copyright": "© {{year}} Unbiax"
   },
   "student": {
-    "no_enrolled_courses": "You are not enrolled in any course."
+    "no_enrolled_courses": "You are not enrolled in any course.",
+    "instructor_no_enrolled_courses": "As an instructor, your courses are managed in the admin panel. They will not appear here unless you enroll as a student."
   },
   "search": {
     "results_for": "Results for \"{{query}}\"",

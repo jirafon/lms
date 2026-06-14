@@ -43,16 +43,16 @@
     "menu": "Menú"
   },
   "home": {
-    "hero_badge": "Formación Ejecutiva LMS",
-    "hero_title": "Forma a colaboradores, directores y equipos de primera linea con una experiencia de aprendizaje clara y aplicable.",
+    "hero_badge": "Formación Ejecutiva",
+    "hero_title": "Forma a colaboradores, directores y equipos de primera lineas",
     "hero_description": "Reune en una sola plataforma cursos clave para toda la organizacion, desde la operacion hasta la toma de decisiones.",
     "hero_feature_paths": "Rutas por capítulos y quizzes",
     "hero_feature_tracking": "Seguimiento por estudiante",
     "hero_feature_catalog": "Catálogo listo para equipos",
     "hero_cta": "Explorar cursos",
-    "hero_caption": "Diseñado para organizaciones que necesitan una experiencia LMS confiable y premium.",
+    "hero_caption": "Diseñado para organizaciones que necesitan una experiencia de aprendizaje confiable y profesional.",
     "panel_eyebrow": "Panel Académico",
-    "panel_title": "LMS corporativo",
+    "panel_title": "Academia corporativa",
     "panel_status": "Activo",
     "panel_metric_courses": "Cursos listos para publicar",
     "panel_metric_progress": "Avance promedio por ruta",
@@ -75,22 +75,11 @@
     "courses_highlight": "Catálogo premium en CLP",
     "courses_cta": "Ver catálogo completo",
     "courses_error": "Ocurrió un error al cargar los cursos.",
-    "footer_badge": "Cierre institucional",
-    "footer_title": "Una portada más sobria, profesional y lista para escalar formación corporativa.",
-    "footer_description": "Presenta tu catálogo con una identidad visual más elegante, mejor jerarquía de contenido y una experiencia más consistente desde el primer scroll.",
-    "footer_capabilities_label": "Capacidades",
-    "footer_capabilities": [
-      "AI Agents, workflows y knowledge bases privadas",
-      "GRC, privacidad, riesgos y gobernanza operacional",
-      "Automatizacion documental y monitoreo regulatorio",
-      "LMS corporativo para privacidad, etica y compliance"
-    ],
-    "footer_panel_label": "Catálogo y matrícula",
-    "footer_panel_text": "Precios claros por usuario y navegación preparada para compra y seguimiento.",
-    "footer_cta": "Ir al catálogo"
+    "footer_copyright": "© {{year}} Unbiax"
   },
   "student": {
-    "no_enrolled_courses": "No estás inscrito en ningún curso."
+    "no_enrolled_courses": "No estás inscrito en ningún curso.",
+    "instructor_no_enrolled_courses": "Como instructor, tus cursos se gestionan en el panel de administración. No aparecen aquí hasta que te inscribas como estudiante."
   },
   "search": {
     "results_for": "Resultados para \"{{query}}\"",

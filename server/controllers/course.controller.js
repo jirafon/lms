@@ -4,12 +4,41 @@ import { Lecture } from "../models/lecture.model.js";
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { uploadMedia, deleteMediaFromS3, extractS3KeyFromUrl, deleteVideoFromS3 } from "../utils/s3.js";
+import { uploadMedia, deleteMediaFromS3, deleteVideoFromS3, resolveS3Key, enrichLectureMedia, enrichCourseMedia, enrichUserMedia } from "../utils/s3.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { logger } from "../utils/logger.js";
 import { sendCourseInvitationEmail } from "../utils/mailer.js";
 import { isValidObjectId, validateCoursePayload, validateLecturePayload } from "../utils/validators.js";
 import mongoose from "mongoose";
+
+const normalizeSupportMaterialsForSave = (materials = []) =>
+    materials.map((material) => {
+        const resolvedS3Key = resolveS3Key({
+            s3Key: material.s3Key,
+            key: material.key,
+            url: material.url,
+        });
+
+        return {
+            ...material,
+            s3Key: resolvedS3Key || material.s3Key || material.key || "",
+            key: material.key || material.s3Key || resolvedS3Key || "",
+        };
+    });
+
+const normalizeVideoInfoForSave = (videoInfo = {}) => {
+    const resolvedS3Key = resolveS3Key({
+        s3Key: videoInfo.s3Key,
+        publicId: videoInfo.publicId,
+        url: videoInfo.videoUrl,
+    });
+
+    return {
+        videoUrl: videoInfo.videoUrl,
+        s3Key: resolvedS3Key || videoInfo.s3Key || videoInfo.publicId || "",
+        publicId: videoInfo.publicId || resolvedS3Key || videoInfo.s3Key || "",
+    };
+};
 
 const getOrderedLectures = (lectures = []) => {
     return lectures
@@ -230,7 +259,13 @@ export const searchCourse = async (req,res) => {
         let courses = await Course.find(searchCriteria).populate({path:"creator", select:"name photoUrl"}).sort(sortOptions);
 
         return sendSuccess(res, {
-            courses: courses || []
+            courses: (courses || []).map((course) => {
+                const enrichedCourse = enrichCourseMedia(course);
+                if (enrichedCourse.creator) {
+                    enrichedCourse.creator = enrichUserMedia(enrichedCourse.creator);
+                }
+                return enrichedCourse;
+            }),
         });
 
     } catch (error) {
@@ -262,8 +297,11 @@ export const getPublishedCourse = async (_,res) => {
                 lectureOrder: lecture.lectureOrder,
             }));
 
-            const courseObject = course.toObject();
+            const courseObject = enrichCourseMedia(course);
             courseObject.lectures = normalizedLectures;
+            if (courseObject.creator) {
+                courseObject.creator = enrichUserMedia(courseObject.creator);
+            }
             return courseObject;
         });
 
@@ -290,7 +328,7 @@ export const getCreatorCourses = async (req,res) => {
             })
         };
         return sendSuccess(res, {
-            courses,
+            courses: (courses || []).map((course) => enrichCourseMedia(course)),
         })
     } catch (error) {
         logger.error("Failed to get creator courses", { error: error.message, userId: req.id });
@@ -828,21 +866,25 @@ export const editCourse = async (req,res) => {
             });
         }
         let courseThumbnail;
+        let courseThumbnailS3Key;
         if (thumbnail) {
-            // Delete old thumbnail from S3 if it exists
-            if (course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))) {
-                const key = extractS3KeyFromUrl(course.courseThumbnail);
-                if (key) {
-                    await deleteMediaFromS3(key);
-                }
+            if (course.courseThumbnail || course.courseThumbnailS3Key) {
+                await deleteMediaFromS3({
+                    s3Key: course.courseThumbnailS3Key,
+                    url: course.courseThumbnail,
+                });
             }
-            // Upload new thumbnail to S3
             const s3Response = await uploadMedia(thumbnail.path, thumbnail.originalname);
             courseThumbnail = s3Response.url;
+            courseThumbnailS3Key = s3Response.s3Key;
         }
 
         // Build updateData object with proper validation
-        const updateData = { courseTitle, subTitle, description, category, courseLevel, courseThumbnail, currency: 'USD' };
+        const updateData = { courseTitle, subTitle, description, category, courseLevel, currency: 'USD' };
+        if (thumbnail) {
+            updateData.courseThumbnail = courseThumbnail;
+            updateData.courseThumbnailS3Key = courseThumbnailS3Key;
+        }
 
         // Only include coursePrice if it's a valid number
         if (coursePrice !== undefined && coursePrice !== null && coursePrice !== "" && coursePrice !== "undefined") {
@@ -875,7 +917,7 @@ export const editCourse = async (req,res) => {
         course = await Course.findByIdAndUpdate(courseId, updateData, { new: true });
 
         return sendSuccess(res, {
-            course,
+            course: enrichCourseMedia(course),
             message: "Course updated successfully."
         })
 
@@ -908,7 +950,7 @@ export const getCourseById = async (req,res) => {
             })
         }
         return sendSuccess(res, {
-            course
+            course: enrichCourseMedia(course),
         })
     } catch (error) {
         logger.error("Failed to get course by id", { error: error.message, courseId: req.params.courseId });
@@ -958,7 +1000,7 @@ export const createLecture = async (req,res) => {
             lectureTitle,
             lectureDescription,
             lectureOrder: nextLectureOrder,
-            supportMaterials,
+            supportMaterials: normalizeSupportMaterialsForSave(supportMaterials),
         });
 
         if(course){
@@ -972,7 +1014,7 @@ export const createLecture = async (req,res) => {
 
         return sendSuccess(res, {
             status: 201,
-            lecture,
+            lecture: enrichLectureMedia(lecture),
             message:"Lecture created successfully."
         });
 
@@ -1002,7 +1044,7 @@ export const getCourseLecture = async (req,res) => {
             })
         }
         return sendSuccess(res, {
-            lectures: getOrderedLectures(course.lectures)
+            lectures: getOrderedLectures(course.lectures).map(enrichLectureMedia)
         });
 
     } catch (error) {
@@ -1054,12 +1096,20 @@ export const editLecture = async (req,res) => {
         // update lecture
         if(lectureTitle) lecture.lectureTitle = lectureTitle;
         if(lectureDescription !== undefined) lecture.lectureDescription = lectureDescription;
-        if(videoInfo?.videoUrl) {
-            lecture.videoUrl = videoInfo.videoUrl;
+        if(videoInfo) {
+            const normalizedVideoInfo = normalizeVideoInfoForSave(videoInfo);
+            if (normalizedVideoInfo.videoUrl) {
+                lecture.videoUrl = normalizedVideoInfo.videoUrl;
+            }
+            if (normalizedVideoInfo.s3Key) {
+                lecture.s3Key = normalizedVideoInfo.s3Key;
+            }
+            if (normalizedVideoInfo.publicId) {
+                lecture.publicId = normalizedVideoInfo.publicId;
+            }
         }
-        if(videoInfo?.publicId) lecture.publicId = videoInfo.publicId;
         if(Array.isArray(supportMaterials)) {
-            lecture.supportMaterials = supportMaterials;
+            lecture.supportMaterials = normalizeSupportMaterialsForSave(supportMaterials);
         }
         if(Number.isInteger(lectureOrder) && lectureOrder > 0) {
             lecture.lectureOrder = lectureOrder;
@@ -1083,7 +1133,7 @@ export const editLecture = async (req,res) => {
         }
 
         return sendSuccess(res, {
-            lecture,
+            lecture: enrichLectureMedia(lecture),
             message:"Lecture updated successfully."
         })
     } catch (error) {
@@ -1112,23 +1162,19 @@ export const removeLecture = async (req,res) => {
                 message:"Lecture not found!"
             });
         }
-        // delete the video from S3 as well
-        if(lecture.videoUrl && (lecture.videoUrl.includes('s3') || lecture.videoUrl.includes('cloudfront'))){
-            const key = extractS3KeyFromUrl(lecture.videoUrl);
-            if (key) {
-                await deleteVideoFromS3(key);
-            }
-        } else if(lecture.publicId){
-            // Fallback to Cloudinary if it's an old video
-            await deleteVideoFromS3(lecture.publicId);
-        }
+        await deleteVideoFromS3({
+            s3Key: lecture.s3Key,
+            publicId: lecture.publicId,
+            url: lecture.videoUrl,
+        });
 
         if (lecture.supportMaterials?.length) {
             for (const material of lecture.supportMaterials) {
-                const key = material.key || extractS3KeyFromUrl(material.url);
-                if (key) {
-                    await deleteMediaFromS3(key);
-                }
+                await deleteMediaFromS3({
+                    s3Key: material.s3Key,
+                    key: material.key,
+                    url: material.url,
+                });
             }
         }
 
@@ -1171,7 +1217,7 @@ export const getLectureById = async (req,res) => {
             });
         }
         return sendSuccess(res, {
-            lecture
+            lecture: enrichLectureMedia(lecture)
         });
     } catch (error) {
         logger.error("Failed to get lecture by id", { error: error.message, lectureId: req.params.lectureId, userId: req.id });
@@ -1333,29 +1379,31 @@ export const removeCourse = async (req,res) => {
             });
         }
 
-        // Delete course thumbnail from S3 if it exists
-        if(course.courseThumbnail && (course.courseThumbnail.includes('s3') || course.courseThumbnail.includes('cloudfront'))){
-            const key = extractS3KeyFromUrl(course.courseThumbnail);
-            if (key) {
-                await deleteMediaFromS3(key);
-            }
-        }
+        await deleteMediaFromS3({
+            s3Key: course.courseThumbnailS3Key,
+            url: course.courseThumbnail,
+        });
 
         // Delete all lectures and their videos
         for(const lectureId of course.lectures){
             const lecture = await Lecture.findById(lectureId);
             if(lecture){
-                // Delete video from S3
-                if(lecture.videoUrl && (lecture.videoUrl.includes('s3') || lecture.videoUrl.includes('cloudfront'))){
-                    const key = extractS3KeyFromUrl(lecture.videoUrl);
-                    if (key) {
-                        await deleteVideoFromS3(key);
+                await deleteVideoFromS3({
+                    s3Key: lecture.s3Key,
+                    publicId: lecture.publicId,
+                    url: lecture.videoUrl,
+                });
+
+                if (lecture.supportMaterials?.length) {
+                    for (const material of lecture.supportMaterials) {
+                        await deleteMediaFromS3({
+                            s3Key: material.s3Key,
+                            key: material.key,
+                            url: material.url,
+                        });
                     }
-                } else if(lecture.publicId){
-                    // Fallback to Cloudinary if it's an old video
-                    await deleteVideoFromS3(lecture.publicId);
                 }
-                // Delete the lecture
+
                 await Lecture.findByIdAndDelete(lectureId);
             }
         }

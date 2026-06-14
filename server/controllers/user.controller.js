@@ -2,7 +2,8 @@ import {User} from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { generateToken } from "../utils/generateToken.js";
-import { deleteMediaFromS3, uploadMedia, extractS3KeyFromUrl } from "../utils/s3.js";
+import { sanitizeAuthUser } from "../utils/userRole.js";
+import { deleteMediaFromS3, uploadMedia, enrichUserMedia } from "../utils/s3.js";
 import { logger } from "../utils/logger.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { validateStringField } from "../utils/validators.js";
@@ -102,7 +103,7 @@ export const login = async (req,res) => {
                 message:"Incorrect email or password"
             });
         }
-        generateToken(res, user, `Welcome back ${user.name}`);
+        generateToken(res, await sanitizeAuthUser(user), `Welcome back ${user.name || user.email}`);
 
     } catch (error) {
         logger.error("Failed to login", { error: error.message, email: req.body?.email });
@@ -279,7 +280,7 @@ export const getUserProfile = async (req,res) => {
             })
         }
         return sendSuccess(res, {
-            user
+            user: enrichUserMedia(await sanitizeAuthUser(user)),
         })
     } catch (error) {
         logger.error("Failed to load user profile", { error: error.message, userId: req.id });
@@ -329,23 +330,22 @@ export const updateProfile = async (req,res) => {
         }
 
         if (profilePhoto) {
-            // Delete old photo from S3 if it exists
-            if(user.photoUrl && (user.photoUrl.includes('s3') || user.photoUrl.includes('cloudfront'))){
-                const key = extractS3KeyFromUrl(user.photoUrl);
-                if (key) {
-                    await deleteMediaFromS3(key);
-                }
+            if (user.photoUrl || user.photoS3Key) {
+                await deleteMediaFromS3({
+                    s3Key: user.photoS3Key,
+                    url: user.photoUrl,
+                });
             }
 
-            // Upload new photo to S3
             const s3Response = await uploadMedia(profilePhoto.path, profilePhoto.originalname);
             updatedData.photoUrl = s3Response.url;
+            updatedData.photoS3Key = s3Response.s3Key;
         }
 
         const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {new:true}).select("-password");
 
         return sendSuccess(res, {
-            user:updatedUser,
+            user: enrichUserMedia(await sanitizeAuthUser(updatedUser)),
             message:"Profile updated successfully."
         })
 

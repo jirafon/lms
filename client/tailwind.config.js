@@ -7,7 +7,9 @@ export default {
   theme: {
 		extend: {
 			fontFamily: {
-				hero: ['Fraunces', 'Georgia', 'serif'],
+				sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+				display: ['"Source Serif 4"', 'Georgia', 'serif'],
+				hero: ['"Source Serif 4"', 'Georgia', 'serif'],
 			},
 			borderRadius: {
 				lg: "var(--radius)",

@@ -5,6 +5,7 @@ import { Quiz } from "../models/quiz.model.js";
 import { QuizAttempt } from "../models/quizAttempt.model.js";
 import { getMissingFields, sendError, sendSuccess } from "../utils/apiResponse.js";
 import { logger } from "../utils/logger.js";
+import { resolveCourseThumbnailUrl } from "../utils/s3.js";
 import { isValidObjectId, validateBooleanField, validateNumberField, validateObjectIdField } from "../utils/validators.js";
 
 const getOrderedLectures = (lectures = []) => {
@@ -515,14 +516,14 @@ export const getUserProgress = async (req, res) => {
     const userId = req.id;
 
     const allProgress = await CourseProgress.find({ userId })
-      .populate('courseId', 'courseTitle courseThumbnail category')
+      .populate('courseId', 'courseTitle courseThumbnail courseThumbnailS3Key category')
       .populate('lectures.lectureId', 'lectureTitle')
       .sort({ lastAccessedAt: -1 });
 
     const progressSummary = allProgress.map(progress => ({
       courseId: progress.courseId,
       courseTitle: progress.courseId.courseTitle,
-      courseThumbnail: progress.courseId.courseThumbnail,
+      courseThumbnail: resolveCourseThumbnailUrl(progress.courseId),
       category: progress.courseId.category,
       progress: progress.courseProgress,
       completedLectures: progress.completedLectures,

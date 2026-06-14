@@ -49,6 +49,7 @@ export const courseApi = createApi({
         method: "GET",
       }),
       providesTags: ["Refetch_Creator_Course"],
+      refetchOnMountOrArgChange: true,
     }),
     getCourseStudents: builder.query({
       query: (courseId) => ({

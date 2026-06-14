@@ -49,6 +49,12 @@ MONGODB_URI=mongodb://localhost:27017/lms
 
 # Server Port
 PORT=3010
+
+# Public API base used to build proxied media URLs returned to the client
+API_PUBLIC_BASE_URL=http://127.0.0.1:3081/api/v1
+
+# Comma-separated emails that should always have instructor access
+INSTRUCTOR_EMAILS=hello@unbiax.com
 `;
 
   fs.writeFileSync(envExamplePath, envTemplate);

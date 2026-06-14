@@ -81,6 +81,10 @@ export const validateSupportMaterials = (materials, errors) => {
     validateStringField(`supportMaterials[${index}].name`, material.name, errors, { required: true });
     validateStringField(`supportMaterials[${index}].url`, material.url, errors, { required: true });
 
+    if (material.s3Key !== undefined) {
+      validateStringField(`supportMaterials[${index}].s3Key`, material.s3Key, errors);
+    }
+
     if (material.key !== undefined) {
       validateStringField(`supportMaterials[${index}].key`, material.key, errors);
     }
@@ -144,6 +148,7 @@ export const validateLecturePayload = (payload, { partial = false } = {}) => {
       errors.push("videoInfo must be an object");
     } else {
       validateStringField("videoInfo.videoUrl", payload.videoInfo.videoUrl, errors);
+      validateStringField("videoInfo.s3Key", payload.videoInfo.s3Key, errors);
       validateStringField("videoInfo.publicId", payload.videoInfo.publicId, errors);
     }
   }

@@ -79,7 +79,8 @@ const LectureTab = () => {
         lecture.videoUrl
           ? {
               videoUrl: lecture.videoUrl,
-              publicId: lecture.publicId,
+              s3Key: lecture.s3Key || lecture.publicId,
+              publicId: lecture.publicId || lecture.s3Key,
             }
           : null
       );
@@ -121,7 +122,8 @@ const LectureTab = () => {
           
           setUploadVideoInfo({
             videoUrl: res.data.data.url,
-            publicId: res.data.data.key,
+            s3Key: res.data.data.s3Key || res.data.data.key,
+            publicId: res.data.data.s3Key || res.data.data.key,
           });
           toast.success(res.data.message);
         }
@@ -158,7 +160,8 @@ const LectureTab = () => {
           uploadedMaterials.push({
             name: file.name,
             url: res.data.data.url,
-            key: res.data.data.key,
+            s3Key: res.data.data.s3Key || res.data.data.key,
+            key: res.data.data.s3Key || res.data.data.key,
           });
         }
       }
