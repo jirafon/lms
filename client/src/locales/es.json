@@ -32,6 +32,9 @@
     "home": "Inicio",
     "courses": "Cursos",
     "my_learning": "Mi Aprendizaje",
+    "my_space": "Mi espacio",
+    "catalog": "Catálogo",
+    "studio": "Studio",
     "profile": "Perfil",
     "dashboard": "Panel",
     "admin": "Administrador",
@@ -41,6 +44,44 @@
     "search_courses": "Buscar Cursos",
     "my_account": "Mi Cuenta",
     "menu": "Menú"
+  },
+  "learn": {
+    "back_to_space": "Mi espacio",
+    "course_overview": "Ficha del curso",
+    "quizzes_passed": "quizzes aprobados",
+    "average_score": "promedio",
+    "course_completed": "Curso completado"
+  },
+  "dashboard": {
+    "eyebrow": "Tu panel de aprendizaje",
+    "subtitle": "Retoma donde lo dejaste y revisa tu avance en un solo lugar.",
+    "continue_where_left": "Continúa donde lo dejaste",
+    "course_completed_label": "Curso completado",
+    "continue_course_fallback": "Tu curso",
+    "your_progress": "Tu progreso",
+    "continue_course": "Continuar curso",
+    "review_course": "Revisar curso",
+    "stats_in_progress": "En progreso",
+    "stats_completed": "Completados",
+    "stats_certificates": "Certificados"
+  },
+  "studio": {
+    "nav_dashboard": "Panel",
+    "nav_courses": "Cursos",
+    "nav_students": "Estudiantes",
+    "back_to_learning": "Vista alumno",
+    "create_course": "Crear curso",
+    "edit_course": "Editar curso",
+    "add_lecture": "Nueva lección",
+    "edit_lecture": "Editar lección"
+  },
+  "profile": {
+    "name_label": "Nombre",
+    "photo_label": "Foto de perfil",
+    "edit_profile": "Editar perfil",
+    "edit_description": "Actualiza tu nombre o foto de perfil.",
+    "updated_success": "Perfil actualizado.",
+    "updated_error": "No se pudo actualizar el perfil."
   },
   "home": {
     "hero_badge": "Formación Ejecutiva",
@@ -79,6 +120,7 @@
   },
   "student": {
     "no_enrolled_courses": "No estás inscrito en ningún curso.",
+    "explore_catalog_cta": "Explorar catálogo",
     "instructor_no_enrolled_courses": "Como instructor, tus cursos se gestionan en el panel de administración. No aparecen aquí hasta que te inscribas como estudiante.",
     "enrolled_courses_title": "Cursos inscritos",
     "enrolled_courses_description": "Cursos en los que estás participando como estudiante.",
@@ -88,6 +130,8 @@
   },
   "search": {
     "results_for": "Resultados para \"{{query}}\"",
+    "page_title_catalog": "Catálogo de cursos",
+    "page_title_results": "Resultados de búsqueda",
     "showing_results_for": "Mostrando resultados para",
     "filter_options": "Opciones de filtro",
     "sort_by": "Ordenar por",
@@ -375,7 +419,10 @@
     "completion_date": "Fecha de Finalización",
     "no_certificates_yet": "No tienes certificados aún",
     "complete_courses_for_certificates": "Completa cursos para obtener tus certificados de finalización",
-    "error_downloading_certificate": "Error al descargar el certificado"
+    "error_downloading_certificate": "Error al descargar el certificado",
+    "achievements_description": "Certificados obtenidos al completar cursos.",
+    "score": "Puntaje",
+    "load_error": "No se pudieron cargar los certificados."
   },
   "payment": {
     "payment": "Pago",

@@ -3,12 +3,12 @@ import "./App.css";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import HeroSection from "./pages/student/HeroSection";
+import HomePage from "./pages/HomePage";
 import MainLayout from "./layout/MainLayout";
-import Courses from "./pages/student/Courses";
+import LearnLayout from "./layout/LearnLayout";
+import StudioLayout from "./layout/StudioLayout";
 import MyLearning from "./pages/student/MyLearning";
 import Profile from "./pages/student/Profile";
-import Sidebar from "./pages/admin/Sidebar";
 import DashboardV2 from "./pages/admin/DashboardV2";
 import StudentsDashboard from "./pages/admin/StudentsDashboard";
 import CourseTable from "./pages/admin/course/CourseTable";
@@ -19,45 +19,84 @@ import EditLecture from "./pages/admin/lecture/EditLecture";
 import CourseDetail from "./pages/student/CourseDetail";
 import CourseProgress from "./pages/student/CourseProgress";
 import SearchPage from "./pages/student/SearchPage";
-import { useTranslation } from "react-i18next";
 import {
   AdminRoute,
   AuthenticatedUser,
   ProtectedRoute,
 } from "./components/ProtectedRoutes";
 import PurchaseCourseProtectedRoute from "./components/PurchaseCourseProtectedRoute";
-const HomeFooter = () => {
-  const { t } = useTranslation();
-
-  return (
-    <footer className="border-t border-border bg-white px-4 py-5 dark:bg-slate-950 sm:px-6">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-sm text-muted-foreground sm:flex-row">
-        <p>{t("home.footer_copyright", { year: new Date().getFullYear() })}</p>
-        <a
-          href="mailto:hello@unbiax.com"
-          className="text-foreground/80 underline-offset-2 hover:text-primary hover:underline"
-        >
-          hello@unbiax.com
-        </a>
-      </div>
-    </footer>
-  );
-};
+import {
+  LegacyCourseDetailRedirect,
+  LegacyCourseProgressRedirect,
+  LegacySearchRedirect,
+} from "./components/LegacyRedirects";
 
 const appRouter = createBrowserRouter([
+  {
+    path: "/app/learn/:courseId",
+    element: (
+      <ProtectedRoute>
+        <PurchaseCourseProtectedRoute>
+          <LearnLayout />
+        </PurchaseCourseProtectedRoute>
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <CourseProgress variant="page" />,
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    element: (
+      <AdminRoute>
+        <StudioLayout />
+      </AdminRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="dashboard-v2" replace />,
+      },
+      {
+        path: "dashboard-v2",
+        element: <DashboardV2 />,
+      },
+      {
+        path: "students",
+        element: <StudentsDashboard />,
+      },
+      {
+        path: "course",
+        element: <CourseTable />,
+      },
+      {
+        path: "course/create",
+        element: <AddCourse />,
+      },
+      {
+        path: "course/:courseId",
+        element: <EditCourse />,
+      },
+      {
+        path: "course/:courseId/lecture",
+        element: <CreateLecture />,
+      },
+      {
+        path: "course/:courseId/lecture/:lectureId",
+        element: <EditLecture />,
+      },
+    ],
+  },
   {
     path: "/",
     element: <MainLayout />,
     children: [
       {
-        path: "/",
-        element: (
-          <>
-            <HeroSection />
-            <Courses />
-            <HomeFooter />
-          </>
-        ),
+        index: true,
+        element: <HomePage />,
       },
       {
         path: "login",
@@ -76,7 +115,15 @@ const appRouter = createBrowserRouter([
         element: <ResetPassword />,
       },
       {
-        path: "my-learning",
+        path: "catalog",
+        element: <SearchPage />,
+      },
+      {
+        path: "courses/:courseId",
+        element: <CourseDetail />,
+      },
+      {
+        path: "app",
         element: (
           <ProtectedRoute>
             <MyLearning />
@@ -84,7 +131,7 @@ const appRouter = createBrowserRouter([
         ),
       },
       {
-        path: "profile",
+        path: "app/profile",
         element: (
           <ProtectedRoute>
             <Profile />
@@ -92,74 +139,32 @@ const appRouter = createBrowserRouter([
         ),
       },
       {
-        path: "course/search",
+        path: "studio",
         element: (
-          <ProtectedRoute>
-            <SearchPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "course-detail/:courseId",
-        element: (
-          <ProtectedRoute>
-            <CourseDetail />
-          </ProtectedRoute>
+          <AdminRoute>
+            <Navigate to="/admin/dashboard-v2" replace />
+          </AdminRoute>
         ),
       },
       {
         path: "course-progress/:courseId",
-        element: (
-          <ProtectedRoute>
-            <PurchaseCourseProtectedRoute>
-            <CourseProgress />
-            </PurchaseCourseProtectedRoute>
-          </ProtectedRoute>
-        ),
+        element: <LegacyCourseProgressRedirect />,
       },
-
-      // admin routes start from here
       {
-        path: "admin",
-        element: (
-          <AdminRoute>
-            <Sidebar />
-          </AdminRoute>
-        ),
-        children: [
-          {
-            index: true,
-            element: <Navigate to="dashboard-v2" replace />,
-          },
-          {
-            path: "dashboard-v2",
-            element: <DashboardV2 />,
-          },
-          {
-            path: "students",
-            element: <StudentsDashboard />,
-          },
-          {
-            path: "course",
-            element: <CourseTable />,
-          },
-          {
-            path: "course/create",
-            element: <AddCourse />,
-          },
-          {
-            path: "course/:courseId",
-            element: <EditCourse />,
-          },
-          {
-            path: "course/:courseId/lecture",
-            element: <CreateLecture />,
-          },
-          {
-            path: "course/:courseId/lecture/:lectureId",
-            element: <EditLecture />,
-          },
-        ],
+        path: "my-learning",
+        element: <Navigate to="/app" replace />,
+      },
+      {
+        path: "profile",
+        element: <Navigate to="/app/profile" replace />,
+      },
+      {
+        path: "course/search",
+        element: <LegacySearchRedirect />,
+      },
+      {
+        path: "course-detail/:courseId",
+        element: <LegacyCourseDetailRedirect />,
       },
     ],
   },

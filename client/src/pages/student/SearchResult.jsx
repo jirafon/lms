@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/utils/routes";
 import { resolveCourseThumbnail } from "@/utils/mediaUrl";
 
 const formatSearchResultPrice = (course) => {
@@ -43,7 +44,7 @@ const SearchResult = ({ course }) => {
   return (
     <Card className="overflow-hidden border-border shadow-sm transition-shadow hover:shadow-md">
       <Link
-        to={`/course-detail/${course._id}`}
+        to={ROUTES.course(course._id)}
         className="flex flex-col gap-4 p-4 md:flex-row md:items-center"
       >
         <img

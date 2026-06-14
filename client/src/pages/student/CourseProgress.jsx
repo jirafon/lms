@@ -61,10 +61,11 @@ const getLectureStatus = ({ lectureProgress, isUnlocked }) => {
   };
 };
 
-const CourseProgress = ({ courseId: courseIdProp }) => {
+const CourseProgress = ({ courseId: courseIdProp, variant = "embedded" }) => {
   const params = useParams();
   const courseId = courseIdProp || params.courseId;
   const { t } = useTranslation();
+  const isPageVariant = variant === "page";
 
   const { data: courseData, isLoading: courseLoading, isError: courseError } =
     useGetCourseDetailWithStatusQuery(courseId);
@@ -205,63 +206,77 @@ const CourseProgress = ({ courseId: courseIdProp }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6">
+    <div className="mx-auto max-w-7xl p-4 md:p-6">
       <div className="grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
         <div className="space-y-6">
-          <Card className="border-slate-200/80 bg-white/90 shadow-sm">
-            <CardHeader className="space-y-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                    Ruta de aprendizaje
-                  </p>
-                  <CardTitle className="mt-2 text-2xl text-slate-900">{course.courseTitle}</CardTitle>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{nextActionText}</p>
+          {!isPageVariant ? (
+            <Card className="border-slate-200/80 bg-white/90 shadow-sm">
+              <CardHeader className="space-y-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                      Ruta de aprendizaje
+                    </p>
+                    <CardTitle className="mt-2 text-2xl text-slate-900">{course.courseTitle}</CardTitle>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{nextActionText}</p>
+                  </div>
+                  {progress.courseProgress === 100 && (
+                    <Badge className="w-fit bg-emerald-600 text-white hover:bg-emerald-600">
+                      <Award className="mr-2 h-4 w-4" /> Curso completado
+                    </Badge>
+                  )}
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-slate-600">
+                    <span>Progreso general</span>
+                    <span className="font-semibold text-slate-900">{progress.courseProgress || 0}%</span>
+                  </div>
+                  <Progress value={progress.courseProgress || 0} className="h-2.5" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <BookOpen className="h-4 w-4" /> Capítulos vistos
+                    </div>
+                    <p className="mt-3 text-2xl font-semibold text-slate-900">{completedLectures}/{totalLectures}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <BookCheck className="h-4 w-4" /> Quizzes aprobados
+                    </div>
+                    <p className="mt-3 text-2xl font-semibold text-slate-900">{completedQuizzes}/{totalLectures}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Target className="h-4 w-4" /> Promedio quiz
+                    </div>
+                    <p className="mt-3 text-2xl font-semibold text-slate-900">{averageQuizScore}%</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Clock3 className="h-4 w-4" /> Tiempo restante
+                    </div>
+                    <p className="mt-3 text-2xl font-semibold text-slate-900">~{estimatedRemainingMinutes} min</p>
+                    <p className="mt-1 text-xs text-slate-500">Estimado total ~{estimatedTotalMinutes} min</p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm leading-6 text-muted-foreground">{nextActionText}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-muted-foreground">
+                <span>{completedQuizzes}/{totalLectures} {t("learn.quizzes_passed")}</span>
+                <span>{averageQuizScore}% {t("learn.average_score")}</span>
+                <span>~{estimatedRemainingMinutes} min</span>
                 {progress.courseProgress === 100 && (
-                  <Badge className="w-fit bg-emerald-600 text-white hover:bg-emerald-600">
-                    <Award className="mr-2 h-4 w-4" /> Curso completado
-                  </Badge>
+                  <span className="text-emerald-600">{t("learn.course_completed")}</span>
                 )}
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-slate-600">
-                  <span>Progreso general</span>
-                  <span className="font-semibold text-slate-900">{progress.courseProgress || 0}%</span>
-                </div>
-                <Progress value={progress.courseProgress || 0} className="h-2.5" />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <BookOpen className="h-4 w-4" /> Capítulos vistos
-                  </div>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">{completedLectures}/{totalLectures}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <BookCheck className="h-4 w-4" /> Quizzes aprobados
-                  </div>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">{completedQuizzes}/{totalLectures}</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Target className="h-4 w-4" /> Promedio quiz
-                  </div>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">{averageQuizScore}%</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Clock3 className="h-4 w-4" /> Tiempo restante
-                  </div>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">~{estimatedRemainingMinutes} min</p>
-                  <p className="mt-1 text-xs text-slate-500">Estimado total ~{estimatedTotalMinutes} min</p>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
+            </div>
+          )}
 
           <Card className="border-slate-200/80 bg-white/90 shadow-sm">
             <CardContent className="p-5 md:p-6">

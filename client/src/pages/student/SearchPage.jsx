@@ -4,6 +4,8 @@ import SearchResult from "./SearchResult";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSearchCourseQuery } from "@/features/api/courseApi";
 import { Link, useSearchParams } from "react-router-dom";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { ROUTES } from "@/utils/routes";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -30,12 +32,18 @@ const SearchPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-8">
+      <Breadcrumbs
+        items={[
+          { label: t("navigation.catalog"), to: ROUTES.catalog },
+          ...(query ? [{ label: query }] : []),
+        ]}
+      />
       <div className="mb-8">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
-          {t("search.results_for", { query: query || "" })}
+          {query ? t("search.results_for", { query }) : t("navigation.catalog")}
         </p>
         <h1 className="mt-2 font-hero text-3xl font-semibold tracking-tight text-foreground">
-          Resultados de busqueda
+          {query ? t("search.page_title_results") : t("search.page_title_catalog")}
         </h1>
         {query && (
           <p className="mt-2 text-muted-foreground">
@@ -75,7 +83,7 @@ const CourseNotFound = ({ t }) => {
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {t("search.course_not_found_description")}
       </p>
-      <Link to="/" className="mt-6">
+      <Link to={ROUTES.catalog} className="mt-6">
         <Button variant="outline" className="rounded-lg">
           {t("search.browse_all_courses")}
         </Button>

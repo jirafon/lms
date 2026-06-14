@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { getUserRole } from "@/utils/userRole";
+import { getHomePath } from "@/utils/routes";
 
 const Login = () => {
   const { t } = useTranslation();
@@ -78,8 +78,7 @@ const Login = () => {
   useEffect(() => {
     if (loginIsSuccess && loginData) {
       toast.success(loginData.message ?? t("auth.login_success"));
-      const userRole = getUserRole(loginData.user);
-      navigate(userRole === "instructor" ? "/admin/course" : "/my-learning");
+      navigate(getHomePath(loginData.user));
     }
     if (loginError) {
       const loginMsg =

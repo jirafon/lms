@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Mail, UserRound } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import Course from "./Course";
 import {
   useLoadUserQuery,
   useUpdateUserMutation,
@@ -24,6 +23,9 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getUserRole } from "@/utils/userRole";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import UserCertificates from "@/components/UserCertificates";
+import { ROUTES } from "@/utils/routes";
 
 const Profile = () => {
   const { t } = useTranslation();
@@ -61,12 +63,12 @@ const Profile = () => {
   useEffect(() => {
     if (isSuccess) {
       refetch();
-      toast.success(updateUserData?.message || "Profile updated.");
+      toast.success(updateUserData?.message || t("profile.updated_success"));
     }
     if (isError) {
-      toast.error(error.message || "Failed to update profile");
+      toast.error(error?.data?.message || t("profile.updated_error"));
     }
-  }, [error, updateUserData, isSuccess, isError, refetch]);
+  }, [error, updateUserData, isSuccess, isError, refetch, t]);
 
   if (isLoading) {
     return (
@@ -77,17 +79,24 @@ const Profile = () => {
     );
   }
 
-  const user = data && data.user;
+  const user = data?.user;
   const userRole = getUserRole(user);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <Breadcrumbs
+        items={[
+          { label: t("navigation.my_space"), to: ROUTES.app },
+          { label: t("navigation.profile") },
+        ]}
+      />
+
       <div className="mb-8">
         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
           {t("navigation.my_account")}
         </p>
         <h1 className="mt-2 font-hero text-3xl font-semibold tracking-tight text-foreground">
-          Perfil
+          {t("navigation.profile")}
         </h1>
       </div>
 
@@ -115,14 +124,14 @@ const Profile = () => {
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
                 <Mail className="h-4 w-4 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-xs text-muted-foreground">{t("auth.email")}</p>
                   <p className="text-sm font-medium text-foreground">{user.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
                 <UserRound className="h-4 w-4 text-primary" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Nombre</p>
+                  <p className="text-xs text-muted-foreground">{t("profile.name_label")}</p>
                   <p className="text-sm font-medium text-foreground">{user.name}</p>
                 </div>
               </div>
@@ -131,29 +140,27 @@ const Profile = () => {
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" className="rounded-lg">
-                  Editar perfil
+                  {t("profile.edit_profile")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Editar perfil</DialogTitle>
-                  <DialogDescription>
-                    Actualiza tu nombre o foto de perfil.
-                  </DialogDescription>
+                  <DialogTitle>{t("profile.edit_profile")}</DialogTitle>
+                  <DialogDescription>{t("profile.edit_description")}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
                   <div className="space-y-2">
-                    <Label>Nombre</Label>
+                    <Label>{t("profile.name_label")}</Label>
                     <Input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Nombre"
+                      placeholder={t("profile.name_label")}
                       className="rounded-lg"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Foto de perfil</Label>
+                    <Label>{t("profile.photo_label")}</Label>
                     <Input
                       onChange={onChangeHandler}
                       type="file"
@@ -170,10 +177,10 @@ const Profile = () => {
                   >
                     {updateUserIsLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("auth.please_wait")}
                       </>
                     ) : (
-                      "Guardar cambios"
+                      t("common.save")
                     )}
                   </Button>
                 </DialogFooter>
@@ -183,24 +190,7 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="font-hero text-xl">Cursos inscritos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {user.enrolledCourses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Aun no estas inscrito en ningun curso.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {user.enrolledCourses.map((course) => (
-                <Course course={course} key={course._id} showPrice={false} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <UserCertificates />
     </div>
   );
 };

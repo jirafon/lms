@@ -10,6 +10,7 @@ import {
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/utils/routes";
 
 const HeroSection = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,7 +20,7 @@ const HeroSection = () => {
   const searchHandler = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "") {
-      navigate(`/course/search?query=${searchQuery}`);
+      navigate(ROUTES.catalogSearch(searchQuery));
     }
     setSearchQuery("");
   };
@@ -97,7 +98,7 @@ const HeroSection = () => {
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Button
-              onClick={() => navigate("/course/search?query")}
+              onClick={() => navigate(ROUTES.catalog)}
               className="h-11 rounded-lg px-6"
             >
               {t("home.hero_cta")}

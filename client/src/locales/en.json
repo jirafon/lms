@@ -32,6 +32,9 @@
     "home": "Home",
     "courses": "Courses",
     "my_learning": "My Learning",
+    "my_space": "My space",
+    "catalog": "Catalog",
+    "studio": "Studio",
     "profile": "Profile",
     "dashboard": "Dashboard",
     "admin": "Admin",
@@ -39,7 +42,46 @@
     "login": "Login",
     "register": "Register",
     "search_courses": "Search Courses",
-    "my_account": "My Account"
+    "my_account": "My Account",
+    "menu": "Menu"
+  },
+  "learn": {
+    "back_to_space": "My space",
+    "course_overview": "Course overview",
+    "quizzes_passed": "quizzes passed",
+    "average_score": "average",
+    "course_completed": "Course completed"
+  },
+  "dashboard": {
+    "eyebrow": "Your learning dashboard",
+    "subtitle": "Pick up where you left off and track your progress in one place.",
+    "continue_where_left": "Continue where you left off",
+    "course_completed_label": "Course completed",
+    "continue_course_fallback": "Your course",
+    "your_progress": "Your progress",
+    "continue_course": "Continue course",
+    "review_course": "Review course",
+    "stats_in_progress": "In progress",
+    "stats_completed": "Completed",
+    "stats_certificates": "Certificates"
+  },
+  "studio": {
+    "nav_dashboard": "Dashboard",
+    "nav_courses": "Courses",
+    "nav_students": "Students",
+    "back_to_learning": "Learner view",
+    "create_course": "Create course",
+    "edit_course": "Edit course",
+    "add_lecture": "New lecture",
+    "edit_lecture": "Edit lecture"
+  },
+  "profile": {
+    "name_label": "Name",
+    "photo_label": "Profile photo",
+    "edit_profile": "Edit profile",
+    "edit_description": "Update your name or profile photo.",
+    "updated_success": "Profile updated.",
+    "updated_error": "Could not update profile."
   },
   "home": {
     "hero_badge": "Executive Training",
@@ -78,6 +120,7 @@
   },
   "student": {
     "no_enrolled_courses": "You are not enrolled in any course.",
+    "explore_catalog_cta": "Explore catalog",
     "instructor_no_enrolled_courses": "As an instructor, your courses are managed in the admin panel. They will not appear here unless you enroll as a student.",
     "enrolled_courses_title": "Enrolled courses",
     "enrolled_courses_description": "Courses you are taking as a student.",
@@ -87,6 +130,8 @@
   },
   "search": {
     "results_for": "Results for \"{{query}}\"",
+    "page_title_catalog": "Course catalog",
+    "page_title_results": "Search results",
     "showing_results_for": "Showing results for",
     "filter_options": "Filter options",
     "sort_by": "Sort by",
@@ -336,7 +381,10 @@
     "completion_date": "Completion Date",
     "no_certificates_yet": "You don't have certificates yet",
     "complete_courses_for_certificates": "Complete courses to get your completion certificates",
-    "error_downloading_certificate": "Error downloading certificate"
+    "error_downloading_certificate": "Error downloading certificate",
+    "achievements_description": "Certificates earned by completing courses.",
+    "score": "Score",
+    "load_error": "Could not load certificates."
   },
   "payment": {
     "payment": "Payment",

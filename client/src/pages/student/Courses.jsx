@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/utils/routes";
 import {
   Dialog,
   DialogContent,
@@ -95,7 +96,7 @@ const Courses = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/course/search?query")}
+            onClick={() => navigate(ROUTES.catalog)}
             className="h-10 shrink-0 rounded-lg"
           >
             {t("home.courses_cta")}
@@ -161,12 +162,15 @@ const Courses = () => {
               <Button
                 type="button"
                 onClick={() => {
+                  if (!selectedCourse?._id) {
+                    return;
+                  }
                   setIsCourseModalOpen(false);
-                  navigate("/login");
+                  navigate(ROUTES.course(selectedCourse._id));
                 }}
                 className="w-full rounded-lg"
               >
-                Comprar curso
+                Ver curso
               </Button>
             </div>
           </DialogContent>

@@ -1,50 +1,55 @@
-import { useSelector } from "react-redux"
+import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { getUserRole } from "@/utils/userRole";
+import { getHomePath, ROUTES } from "@/utils/routes";
 
-export const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, authChecked} = useSelector(store=>store.auth);
+export const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, authChecked } = useSelector((store) => store.auth);
 
-    if(!authChecked){
-        return null;
-    }
+  if (!authChecked) {
+    return null;
+  }
 
-    if(!isAuthenticated){
-        return <Navigate to="/login"/>
-    }
+  if (!isAuthenticated) {
+    return <Navigate to={ROUTES.login} />;
+  }
 
-    return children;
-}
-export const AuthenticatedUser = ({children}) => {
-    const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
-    const userRole = getUserRole(user);
+  return children;
+};
 
-    if(!authChecked){
-        return null;
-    }
+export const AuthenticatedUser = ({ children }) => {
+  const { user, isAuthenticated, authChecked } = useSelector(
+    (store) => store.auth
+  );
 
-    if(isAuthenticated){
-        return <Navigate to={userRole === "instructor" ? "/admin/course" : "/my-learning"}/>
-    }
+  if (!authChecked) {
+    return null;
+  }
 
-    return children;
-}
+  if (isAuthenticated) {
+    return <Navigate to={getHomePath(user)} replace />;
+  }
 
-export const AdminRoute = ({children}) => {
-    const {user, isAuthenticated, authChecked} = useSelector(store=>store.auth);
-    const userRole = getUserRole(user);
+  return children;
+};
 
-    if(!authChecked){
-        return null;
-    }
+export const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated, authChecked } = useSelector(
+    (store) => store.auth
+  );
+  const userRole = getUserRole(user);
 
-    if(!isAuthenticated){
-        return <Navigate to="/login"/>
-    }
+  if (!authChecked) {
+    return null;
+  }
 
-    if(userRole !== "instructor"){
-        return <Navigate to="/my-learning"/>
-    }
+  if (!isAuthenticated) {
+    return <Navigate to={ROUTES.login} />;
+  }
 
-    return children;
-}
+  if (userRole !== "instructor") {
+    return <Navigate to={ROUTES.app} replace />;
+  }
+
+  return children;
+};

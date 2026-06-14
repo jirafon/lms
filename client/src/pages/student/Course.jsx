@@ -6,6 +6,7 @@ import { BookCheck, BookOpen, Clock3 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { ROUTES } from "@/utils/routes";
 import { resolveCourseThumbnail, resolveUserPhoto } from "@/utils/mediaUrl";
 
 const formatDate = (value) => {
@@ -173,8 +174,12 @@ const Course = ({
     );
   }
 
+  const destination = progressSummary
+    ? ROUTES.courseLearn(course._id)
+    : ROUTES.course(course._id);
+
   return (
-    <Link to={`/course-detail/${course._id}`} onClick={handleCardClick}>
+    <Link to={destination} onClick={handleCardClick}>
       {cardContent}
     </Link>
   );

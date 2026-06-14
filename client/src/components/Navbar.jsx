@@ -21,19 +21,29 @@ import {
   SheetTrigger,
 } from "./ui/sheet";
 import { Separator } from "@radix-ui/react-dropdown-menu";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useLogoutUserMutation } from "@/features/api/authApi";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { getUserRole, isInstructor } from "@/utils/userRole";
+import { isInstructor } from "@/utils/userRole";
+import { getHomePath, ROUTES } from "@/utils/routes";
+import GlobalSearch from "@/components/GlobalSearch";
+
+const navLinkClass = ({ isActive }) =>
+  `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    isActive
+      ? "bg-primary/10 text-primary"
+      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+  }`;
 
 const Navbar = () => {
   const { t } = useTranslation();
   const { user } = useSelector((store) => store.auth);
-  const userRole = getUserRole(user);
   const [logoutUser, { data, isSuccess }] = useLogoutUserMutation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const homePath = user ? getHomePath(user) : ROUTES.home;
 
   const logoutHandler = async () => {
     await logoutUser();
@@ -42,12 +52,39 @@ const Navbar = () => {
   useEffect(() => {
     if (isSuccess) {
       toast.success(data?.message || t("auth.logout_success"));
-      navigate("/login");
+      navigate(ROUTES.home);
     }
   }, [isSuccess, data, navigate, t]);
 
+  const primaryNavLinks = user ? (
+    <>
+      <NavLink to={ROUTES.app} className={navLinkClass}>
+        {t("navigation.my_space")}
+      </NavLink>
+      {isInstructor(user) && (
+      <NavLink
+        to={ROUTES.studio}
+        className={({ isActive }) =>
+          navLinkClass({
+            isActive: isActive || location.pathname.startsWith("/admin"),
+          })
+        }
+      >
+        {t("navigation.studio")}
+      </NavLink>
+      )}
+      <NavLink to={ROUTES.catalog} className={navLinkClass}>
+        {t("navigation.catalog")}
+      </NavLink>
+    </>
+  ) : (
+    <NavLink to={ROUTES.catalog} className={navLinkClass}>
+      {t("navigation.catalog")}
+    </NavLink>
+  );
+
   const brandMark = (
-    <Link to="/" className="group inline-flex items-center gap-3">
+    <Link to={homePath} className="group inline-flex items-center gap-3">
       <img
         src="/unbiax13.png"
         alt="Unbiax"
@@ -66,7 +103,10 @@ const Navbar = () => {
       {user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-full ring-2 ring-transparent transition hover:ring-primary/20">
+            <button
+              type="button"
+              className="rounded-full ring-2 ring-transparent transition hover:ring-primary/20"
+            >
               <Avatar className="h-9 w-9">
                 <AvatarImage
                   src={user?.photoUrl || "https://github.com/shadcn.png"}
@@ -83,21 +123,8 @@ const Navbar = () => {
             <DropdownMenuLabel>{t("navigation.my_account")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              {isInstructor(user) && (
-                <>
-                  <DropdownMenuItem>
-                    <Link to="/admin/course">{t("admin.manage_courses")}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/admin/students">{t("admin.manage_students")}</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuItem>
-                <Link to="my-learning">{t("navigation.my_learning")}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link to="profile">{t("navigation.profile")}</Link>
+              <DropdownMenuItem asChild>
+                <Link to={ROUTES.profile}>{t("navigation.profile")}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={logoutHandler}>
                 {t("navigation.logout")}
@@ -106,7 +133,7 @@ const Navbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Link to="/login">
+        <Link to={ROUTES.login}>
           <Button size="sm" className="rounded-lg px-4 font-medium">
             {t("navigation.login")}
           </Button>
@@ -117,8 +144,10 @@ const Navbar = () => {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-white/90 backdrop-blur-md dark:bg-slate-950/90">
-      <div className="mx-auto hidden h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 md:flex">
+      <div className="mx-auto hidden h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 md:flex">
         {brandMark}
+        <nav className="flex items-center gap-1">{primaryNavLinks}</nav>
+        <GlobalSearch className="hidden lg:block" />
         {navActions}
       </div>
 
@@ -138,21 +167,58 @@ const Navbar = () => {
                 <SheetTitle>{t("navigation.menu")}</SheetTitle>
               </SheetHeader>
               <Separator className="mr-2" />
-              <nav className="mt-6 flex flex-col space-y-4 text-foreground">
+              <nav className="mt-6 flex flex-col space-y-3 text-foreground">
+                <GlobalSearch className="mb-2 lg:hidden" />
                 {user ? (
                   <>
+                    <Link
+                      to={ROUTES.app}
+                      className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.my_space")}
+                    </Link>
                     {isInstructor(user) && (
-                      <>
-                        <Link to="/admin/course">{t("admin.manage_courses")}</Link>
-                        <Link to="/admin/students">{t("admin.manage_students")}</Link>
-                      </>
+                      <Link
+                        to={ROUTES.studio}
+                        className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                      >
+                        {t("navigation.studio")}
+                      </Link>
                     )}
-                    <Link to="/my-learning">{t("navigation.my_learning")}</Link>
-                    <Link to="/profile">{t("navigation.profile")}</Link>
-                    <button onClick={logoutHandler}>{t("navigation.logout")}</button>
+                    <Link
+                      to={ROUTES.catalog}
+                      className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.catalog")}
+                    </Link>
+                    <Link
+                      to={ROUTES.profile}
+                      className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.profile")}
+                    </Link>
+                    <button
+                      onClick={logoutHandler}
+                      className="rounded-lg px-2 py-2 text-left text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.logout")}
+                    </button>
                   </>
                 ) : (
-                  <Link to="/login">{t("navigation.login")}</Link>
+                  <>
+                    <Link
+                      to={ROUTES.catalog}
+                      className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.catalog")}
+                    </Link>
+                    <Link
+                      to={ROUTES.login}
+                      className="rounded-lg px-2 py-2 text-sm font-medium hover:bg-muted/60"
+                    >
+                      {t("navigation.login")}
+                    </Link>
+                  </>
                 )}
               </nav>
             </SheetContent>

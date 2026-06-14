@@ -526,7 +526,7 @@ export const paypalWebhook = async (_req, res) => {
 export const getCourseDetailWithPurchaseStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.id;
+    const userId = req.id || null;
 
     if (!isValidObjectId(courseId)) {
       return sendError(res, {
@@ -540,11 +540,13 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       .populate({ path: "creator" })
       .populate({ path: "lectures" });
 
-    const purchased = await CoursePurchase.findOne({ 
-      userId, 
-      courseId,
-      status: 'completed'
-    });
+    const purchased = userId
+      ? await CoursePurchase.findOne({
+          userId,
+          courseId,
+          status: "completed",
+        })
+      : null;
 
     if (!course) {
       return sendError(res, { status: 404, message: "course not found!" });

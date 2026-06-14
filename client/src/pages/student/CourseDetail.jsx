@@ -16,9 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { BadgeInfo, Lock, PlayCircle, BarChart3, AlertTriangle, Users, BookOpen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ROUTES } from "@/utils/routes";
 import { toast } from "sonner";
 import { useTranslation } from 'react-i18next';
 import { resolveCourseThumbnail } from "@/utils/mediaUrl";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 const renderSupportMaterials = (lecture) => {
   if (!lecture?.supportMaterials?.length) {
@@ -142,12 +144,20 @@ const CourseDetail = () => {
 
   const handleContinueCourse = () => {
     if(purchased){
-      navigate(`/course-progress/${courseId}`)
+      navigate(ROUTES.courseLearn(courseId))
     }
   }
 
   return (
     <div className="min-h-screen bg-muted/30">
+      <div className="mx-auto max-w-7xl px-4 pt-8 md:px-8">
+        <Breadcrumbs
+          items={[
+            { label: t("navigation.catalog"), to: ROUTES.catalog },
+            { label: courseTitle },
+          ]}
+        />
+      </div>
       <div className="border-b border-border bg-white dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-12">
           <div className="max-w-4xl space-y-5">

@@ -1,5 +1,6 @@
 import express from "express";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
+import optionalAuth from "../middlewares/optionalAuth.js";
 import { 
   createCheckoutSession, 
   flowConfirmationHandler,
@@ -37,7 +38,7 @@ router.route("/webhook/stripe").post(express.raw({type:"application/json"}), str
 router.route("/webhook/paypal").post(express.json(), paypalWebhook);
 
 // Course details with purchase status
-router.route("/course/:courseId/detail-with-status").get(isAuthenticated, getCourseDetailWithPurchaseStatus);
+router.route("/course/:courseId/detail-with-status").get(optionalAuth, getCourseDetailWithPurchaseStatus);
 
 // Get all purchased courses for the authenticated user
 router.route("/").get(isAuthenticated, getAllPurchasedCourse);
