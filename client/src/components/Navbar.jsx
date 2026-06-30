@@ -91,7 +91,7 @@ const Navbar = () => {
         className="h-9 w-auto transition-opacity group-hover:opacity-90 md:h-10"
       />
       <span className="font-display text-[1.35rem] font-semibold leading-none tracking-[-0.02em] text-slate-900 dark:text-white md:text-[1.5rem]">
-        Academy
+        Compliance Academy
       </span>
     </Link>
   );
