@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Filter from "./Filter";
 import SearchResult from "./SearchResult";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,14 @@ import { ROUTES } from "@/utils/routes";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { COURSE_CATEGORY_OPTIONS } from "@/constants/courseCategories";
+
+const normalizeCategory = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const SearchPage = () => {
   const { t } = useTranslation();
@@ -24,6 +32,49 @@ const SearchPage = () => {
   });
 
   const isEmpty = !isLoading && data?.courses.length === 0;
+  const categoryLabelMap = useMemo(() => {
+    const map = new Map();
+    COURSE_CATEGORY_OPTIONS.forEach(({ value, labelKey }) => {
+      map.set(normalizeCategory(value), t(labelKey));
+    });
+    return map;
+  }, [t]);
+
+  const groupedCourses = useMemo(() => {
+    const groupsMap = new Map();
+    const courses = data?.courses ?? [];
+
+    courses.forEach((course) => {
+      const rawCategory = course?.courseCategory?.trim() || t("course.course_category");
+      const normalized = normalizeCategory(rawCategory);
+      const categoryTitle = categoryLabelMap.get(normalized) || rawCategory;
+
+      if (!groupsMap.has(normalized)) {
+        groupsMap.set(normalized, {
+          categoryKey: normalized,
+          categoryTitle,
+          courses: [],
+        });
+      }
+
+      groupsMap.get(normalized).courses.push(course);
+    });
+
+    return Array.from(groupsMap.values())
+      .map((group) => ({
+        ...group,
+        courses: [...group.courses].sort((a, b) =>
+          String(a?.courseTitle || "").localeCompare(String(b?.courseTitle || ""), "es", {
+            sensitivity: "base",
+          })
+        ),
+      }))
+      .sort((a, b) =>
+        a.categoryTitle.localeCompare(b.categoryTitle, "es", {
+          sensitivity: "base",
+        })
+      );
+  }, [data?.courses, categoryLabelMap, t]);
 
   const handleFilterChange = (categories, price) => {
     setSelectedCatgories(categories);
@@ -63,7 +114,20 @@ const SearchPage = () => {
           ) : isEmpty ? (
             <CourseNotFound t={t} />
           ) : (
-            data?.courses?.map((course) => <SearchResult key={course._id} course={course} />)
+            <div className="space-y-8">
+              {groupedCourses.map((group) => (
+                <section key={group.categoryKey} className="space-y-3">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {group.categoryTitle}
+                  </h2>
+                  <div className="space-y-4">
+                    {group.courses.map((course) => (
+                      <SearchResult key={course._id} course={course} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           )}
         </div>
       </div>

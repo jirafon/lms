@@ -33,17 +33,14 @@ const HeroSection = () => {
 
   const featuredCourses = [
     {
-      image: "/course-thumbnails/ciberseguridad.png",
       category: t("search.categories.cybersecurity"),
       title: t("home.highlighted_course_1"),
     },
     {
-      image: "/course-thumbnails/ley-karin.png",
       category: t("search.categories.compliance"),
       title: t("home.highlighted_course_2"),
     },
     {
-      image: "/course-thumbnails/ia-responsable.png",
       category: t("search.categories.technology"),
       title: t("home.highlighted_course_3"),
     },
@@ -138,13 +135,8 @@ const HeroSection = () => {
             {featuredCourses.map((course) => (
               <div
                 key={course.title}
-                className="flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:bg-muted/40"
+                className="rounded-xl border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40"
               >
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="h-14 w-20 shrink-0 rounded-lg object-cover"
-                />
                 <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {course.category}

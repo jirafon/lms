@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/utils/routes";
+import { COURSE_CATEGORY_OPTIONS } from "@/constants/courseCategories";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,13 @@ import {
 } from "@/components/ui/dialog";
 
 const HOME_SELECTED_COURSE_KEY = "homeSelectedCourseId";
+
+const normalizeCategory = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const Courses = () => {
   const { t } = useTranslation();
@@ -75,6 +83,49 @@ const Courses = () => {
     return rawDescription.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   }, [selectedCourse]);
 
+  const categoryLabelMap = useMemo(() => {
+    const map = new Map();
+    COURSE_CATEGORY_OPTIONS.forEach(({ value, labelKey }) => {
+      map.set(normalizeCategory(value), t(labelKey));
+    });
+    return map;
+  }, [t]);
+
+  const groupedCourses = useMemo(() => {
+    const groupsMap = new Map();
+
+    courses.forEach((course) => {
+      const rawCategory = course?.courseCategory?.trim() || t("course.course_category");
+      const normalizedCategory = normalizeCategory(rawCategory);
+      const categoryTitle = categoryLabelMap.get(normalizedCategory) || rawCategory;
+
+      if (!groupsMap.has(normalizedCategory)) {
+        groupsMap.set(normalizedCategory, {
+          categoryKey: normalizedCategory,
+          categoryTitle,
+          courses: [],
+        });
+      }
+
+      groupsMap.get(normalizedCategory).courses.push(course);
+    });
+
+    return Array.from(groupsMap.values())
+      .map((group) => ({
+        ...group,
+        courses: [...group.courses].sort((a, b) =>
+          String(a?.courseTitle || "").localeCompare(String(b?.courseTitle || ""), "es", {
+            sensitivity: "base",
+          })
+        ),
+      }))
+      .sort((a, b) =>
+        a.categoryTitle.localeCompare(b.categoryTitle, "es", {
+          sensitivity: "base",
+        })
+      );
+  }, [courses, categoryLabelMap, t]);
+
   if (isError) return <h1>{t("home.courses_error")}</h1>;
 
   return (
@@ -104,21 +155,34 @@ const Courses = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, index) => (
-                <CourseSkeleton key={index} />
-              ))
-            : courses.map((course) => (
-                <Course
-                  key={course._id}
-                  course={course}
-                  size="large"
-                  onCardClick={handleCourseCardClick}
-                  disableNavigation
-                />
-              ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <CourseSkeleton key={index} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {groupedCourses.map((group) => (
+              <section key={group.categoryKey} className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground sm:text-xl">
+                  {group.categoryTitle}
+                </h3>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {group.courses.map((course) => (
+                    <Course
+                      key={course._id}
+                      course={course}
+                      size="large"
+                      onCardClick={handleCourseCardClick}
+                      disableNavigation
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
 
         <Dialog open={isCourseModalOpen} onOpenChange={setIsCourseModalOpen}>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">

@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "node scripts/run-client.mjs start",
+    "start": "node scripts/run-client.mjs",
     "dev": "node scripts/run-client.mjs dev",
     "build": "webpack --mode production",
-    "preview": "serve -s dist -l 4173",
+    "preview": "node scripts/run-client.mjs preview",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
